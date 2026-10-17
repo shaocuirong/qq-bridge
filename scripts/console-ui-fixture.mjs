@@ -9,7 +9,8 @@ import { pickBucketMs } from '../src/token-ledger.js';
 import { manualDirCommand } from '../src/state-acl.mjs';
 import { toolGroupsView } from '../src/tool-prompts.js';
 import { prepareActionParams } from '../src/tool-catalog.js';
-import { normalizeToolAutomationRules, WAKE_EVENT_TYPES, WAKE_PROMPT_REFERENCES } from '../src/tool-automations.js';
+import { normalizeWakeRules, WAKE_EVENT_TYPES, WAKE_PROMPT_REFERENCES } from '../src/wake-rules.js';
+import { DEFAULT_WAKE_PROMPTS, WAKE_PROMPT_LABELS } from '../src/wake-prompts.js';
 
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const timestamp = '2026-09-20T08:30:00.000Z';
@@ -364,7 +365,11 @@ export function makeFixtureState() {
 /** Bind only to loopback. Mutations affect this server's disposable in-memory state. */
 export async function startConsoleFixture({ port = 0, original = false, htmlPath, logWrites = false } = {}) {
   const toolPrompts = {};
-  let toolAutomationRules = [];
+  let wakeRulesState = [];
+  const wakePromptOverrides = {};
+  const wakeView = () => ({ ok: true, rules: wakeRulesState, eventTypes: WAKE_EVENT_TYPES,
+    references: { ...WAKE_PROMPT_REFERENCES, message: wakePromptOverrides.message ?? DEFAULT_WAKE_PROMPTS.message, proactive: wakePromptOverrides.proactiveCheck ?? DEFAULT_WAKE_PROMPTS.proactiveCheck }, schedules: [],
+    prompts: Object.entries(DEFAULT_WAKE_PROMPTS).map(([id, defaultText]) => ({ id, label: WAKE_PROMPT_LABELS[id], text: wakePromptOverrides[id] ?? defaultText, defaultText })) });
   const file = htmlPath || resolve(projectRoot, original ? 'scripts/fixtures/console.before.html' : 'public/console.html');
   await readFile(file); // Fail early rather than displaying a broken preview.
   const state = makeFixtureState();
@@ -385,7 +390,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
         res.end(await readFile(file));
         return;
       }
-      if (method === 'GET' && ['/console-tools.js', '/console-tools.css'].includes(path)) {
+      if (method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css'].includes(path)) {
         res.writeHead(200, { 'content-type': `${path.endsWith('.js') ? 'text/javascript' : 'text/css'}; charset=utf-8` });
         res.end(await readFile(resolve(projectRoot, 'public', path.slice(1)))); return;
       }
@@ -481,7 +486,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/qzone': return json({ ok: true, config: state.qzone || { enabled: false, pollIntervalMs: 300000, authorIds: [], targetKeys: [] }, status: { writable: true, delivered: 0 } });
           case '/api/socialV2/config': return json({ ok: true, config: state.v2 });
           case '/api/socialV2/tool-prompts': return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
-          case '/api/tool-automations': return json({ ok: true, rules: toolAutomationRules, eventTypes: WAKE_EVENT_TYPES, references: WAKE_PROMPT_REFERENCES });
+          case '/api/wake-rules': return json(wakeView());
           case '/api/socialV2/activity': return json({ ok: true, paused: state.paused });
           case '/api/socialV2/tool-log': return json({ ok: true, entries: state.toolLog });
           case '/api/socialV2/feedback': return json({ ok: true, entries: state.feedback });
@@ -579,10 +584,10 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/socialV2/tool-prompts':
             toolPrompts[body.group] = { text: body.text, enabled: body.enabled !== false, protocolVersion: 2 };
             return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
-          case '/api/tool-automations':
-            try { toolAutomationRules = normalizeToolAutomationRules(body.rules); }
+          case '/api/wake-rules':
+            try { if (body.rules !== undefined) wakeRulesState = normalizeWakeRules(body.rules); Object.assign(wakePromptOverrides, body.prompts || {}); }
             catch (error) { return json({ ok: false, error: error.message }, 400); }
-            return json({ ok: true, rules: toolAutomationRules, eventTypes: WAKE_EVENT_TYPES, references: WAKE_PROMPT_REFERENCES });
+            return json(wakeView());
           case '/api/socialV2/tools/call': {
             const prepared = prepareActionParams(body.action, body.key, body.params);
             return json(prepared.ok ? { ok: true, action: body.action, params: prepared.params, dryRun: body.dryRun, mock: true } : prepared, prepared.ok ? 200 : 400);

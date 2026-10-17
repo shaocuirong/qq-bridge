@@ -51,10 +51,6 @@ export const BUNDLE_DIR = path.join(REPO_ROOT, 'plugins', 'qq-agent-presets');
 export function patchFileFor(name) {
   return path.join(BUNDLE_DIR, 'presets', `${name}.patch.yml`);
 }
-function sourceDirFor(name) {
-  return path.join(REPO_ROOT, 'dsh', 'agent-presets', name);
-}
-
 function readYaml(file) {
   let text;
   try {
@@ -110,14 +106,14 @@ function normalizeRows(rows, preset) {
 }
 
 /** 渲染一个 preset 的 patch 文件内容。 */
-export function renderPatch(name) {
-  const dir = sourceDirFor(name);
+export function renderPatch(name, { root = REPO_ROOT, agentText } = {}) {
+  const dir = path.join(root, 'dsh', 'agent-presets', name);
   const meta = readYaml(path.join(dir, 'preset.yml'));
   if (!meta || typeof meta !== 'object' || Array.isArray(meta)) throw new Error(`${name}: preset.yml 必须是映射`);
   for (const field of ['name', 'description', 'order']) {
     if (meta[field] === undefined) throw new Error(`${name}: preset.yml 缺少 ${field}`);
   }
-  const plugins = normalizeRows(readYaml(path.join(dir, 'agent.cordis.yml')), name);
+  const plugins = normalizeRows(agentText === undefined ? readYaml(path.join(dir, 'agent.cordis.yml')) : yaml.load(agentText), name);
   const row = {
     id: presetRowId(name),
     name: '@deepseek-ai/dsh-agent-preset',

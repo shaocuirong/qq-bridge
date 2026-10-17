@@ -34,7 +34,7 @@ const ok = (name, cond, extra = '') => {
 // 1. 页面
 const page = await fetch(BASE + '/', { headers: authHeaders });
 const html = await page.text();
-ok('页面加载', page.status === 200 && html.includes('白名单 / 管理员') && html.includes('人格与角色') && html.includes('仿真提示词') && html.includes('测试发送'), `长度 ${html.length}`);
+ok('页面加载', page.status === 200 && html.includes('白名单 / 管理员') && html.includes('人格提示词') && html.includes('仿真提示词') && html.includes('事件与定时唤醒') && html.includes('测试发送'), `长度 ${html.length}`);
 
 // 2. 角色列表
 let r = await api('/api/roles');

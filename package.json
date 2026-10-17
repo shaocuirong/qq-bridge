@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node src/bridge.js",
     "test:audit": "node scripts/test-audit.mjs",
-    "test:tools": "node scripts/test-tool-suites-runtime.mjs && node scripts/test-tool-automations.mjs && node scripts/test-tool-management-http.mjs && node scripts/test-tool-prompts.mjs",
+    "test:tools": "node scripts/test-tool-suites-runtime.mjs && node scripts/test-wake-rules.mjs && node scripts/test-tool-management-http.mjs && node scripts/test-tool-prompts.mjs",
     "test:token": "node scripts/test-token-economy.mjs && node scripts/test-reply-wait.mjs && node scripts/test-qq-model-view.mjs && node scripts/test-qq-preset-contract.mjs",
     "test:tokens": "node scripts/test-token-usage.mjs",
     "test:hardening": "node scripts/test-hardening.mjs",

@@ -13,6 +13,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import yaml from 'js-yaml';
 import { extractPresetPrefix, presetPromptBlockers, presetPromptWarnings, renderPresetPromptYaml } from './preset-prompt.js';
+import { renderPatch as renderPresetBundlePatch } from '../scripts/build-agent-preset-patches.mjs';
 import { GEN1_ROLE_LINE_RE, parseRoleSections, roleCharStats, roleSectionReport, selectRoleText } from './role-card.js';
 import { fileURLToPath } from 'node:url';
 import { SnowLumaWebSocketClient, text } from '@snowluma/sdk';
@@ -31,7 +32,8 @@ import { extractForwardIds, forwardIdFromData, sanitizeForwardId, formatForwardR
 import { authorizeToolCall, authorizeConsoleToolCall, validateToolTarget, auditToolParams, normalizeToolGroups, enabledToolNames, keyKindOkFor, groupOfAction, isNeverExposed, GROUPS, actionEnabled as actionEnabledPure } from './qq-tool-groups.js';
 import { composePromptBlock, promptsView, readPrompts as readToolPrompts, writePrompt as writeToolPrompt, ensureDefaults as ensureToolPrompts, MAX_GROUP_CHARS } from './tool-prompts.js';
 import { activeToolGroups } from './tool-protocols.js';
-import { createToolAutomationRuntime } from './tool-automations.js';
+import { createWakeRuleRuntime } from './wake-rules.js';
+import { DEFAULT_WAKE_PROMPTS } from './wake-prompts.js';
 import { prepareActionParams, actionReadOnly } from './tool-catalog.js';
 import { resolvePriceTable } from './model-prices.js';
 import { createTokenLedger } from './token-ledger.js';
@@ -415,12 +417,8 @@ function presetSourceYaml(name) {
   return path.join(ROOT, 'dsh', 'agent-presets', name, 'agent.cordis.yml');
 }
 
-function dshHomeDir() {
-  return process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
-}
-
-function installedPresetYaml(name) {
-  return path.join(dshHomeDir(), '.agent-presets', name, 'agent.cordis.yml');
+function presetBundlePatch(name) {
+  return path.join(ROOT, 'plugins', 'qq-agent-presets', 'presets', `${name}.patch.yml`);
 }
 
 // 这里**没有**模块级的 resolvePresetName —— 曾经有一个，但它被 main() 内部同名函数完全遮蔽
@@ -460,6 +458,24 @@ function backupPresetFile(name) {
   return dest;
 }
 
+// DSH 读取的是 bundle 的内联 patch，旧 .agent-presets 目录不再生效。
+// 保存前先用安装脚本同一生成器完整校验；任一写入失败时回滚源和产物。
+function savePresetSourceAndPatch(name, nextText) {
+  const patch = renderPresetBundlePatch(name, { root: ROOT, agentText: nextText });
+  const target = presetBundlePatch(name);
+  const previousPatch = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
+  const sourceBackup = backupPresetFile(name);
+  try {
+    atomicWriteText(presetSourceYaml(name), nextText);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    atomicWriteText(target, patch);
+  } catch (error) {
+    if (sourceBackup) { try { fs.copyFileSync(sourceBackup, presetSourceYaml(name)); } catch {} }
+    try { if (previousPatch === null) fs.unlinkSync(target); else atomicWriteText(target, previousPatch); } catch {}
+    throw error;
+  }
+}
+
 function listPresetBackups(name) {
   try {
     const prefix = presetBackupPrefix(name) + '.';
@@ -479,7 +495,8 @@ function presetStatus(name) {
     preset: name,
     label: name === PRESET_NAMES.v1 ? '一代仿真（reserved）' : '二代仿真（reserved2）',
     sourceFile: path.relative(ROOT, presetSourceYaml(name)),
-    installed: fs.existsSync(installedPresetYaml(name)),
+    bundleReady: fs.existsSync(presetBundlePatch(name)),
+    patchFile: path.relative(ROOT, presetBundlePatch(name)),
     requiresRestart: true,
   };
 }
@@ -3901,7 +3918,7 @@ async function main() {
           }
         }
         // 管理页资源与页面共用鉴权，必须在令牌校验和智能体管理面隔离之后提供。
-        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css'].includes(url.pathname)) {
+        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css'].includes(url.pathname)) {
           const content = fs.readFileSync(path.join(ROOT, 'public', url.pathname.slice(1)), 'utf8');
           const type = url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css';
           res.writeHead(200, { 'content-type': `${type}; charset=utf-8`, ...SECURITY_HEADERS });
@@ -4196,7 +4213,11 @@ async function main() {
             // 让一次"打开又保存"把整个提示词块变成全删全加的 diff，失去可复审性。
             const normalized = String(body.content ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '');
             if (normalized === prefix) {
-              sendJson({ ok: true, unchanged: true, chars: prefix.length, warnings: presetPromptWarnings(prefix), synced: fs.existsSync(installedPresetYaml(preset)), requiresRestart: false, status: presetStatus(preset) });
+              const patch = renderPresetBundlePatch(preset, { root: ROOT });
+              const target = presetBundlePatch(preset);
+              const patchChanged = !fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== patch;
+              if (patchChanged) { fs.mkdirSync(path.dirname(target), { recursive: true }); atomicWriteText(target, patch); }
+              sendJson({ ok: true, unchanged: !patchChanged, chars: prefix.length, warnings: presetPromptWarnings(prefix), synced: true, requiresRestart: patchChanged, status: presetStatus(preset) });
               return;
             }
             nextText = renderPresetPromptYaml(text, body.content, preset === PRESET_NAMES.v1 ? 'v1' : 'v2');
@@ -4205,22 +4226,9 @@ async function main() {
             return;
           }
           const warnings = presetPromptWarnings(body.content);
-          let sourceBackup = null;
           try {
-            sourceBackup = backupPresetFile(preset);
-            atomicWriteText(presetSourceYaml(preset), nextText);
-            // 同步到 DSH 实际读取的安装目录。
-            // 注意：安装副本**不做仓库内备份**——它的内容与刚写好的源文件一致，
-            // 备份它等于把含本机绝对路径的快照塞进仓库工作区，没有额外价值。
-            const installed = installedPresetYaml(preset);
-            if (fs.existsSync(installed)) {
-              fs.copyFileSync(presetSourceYaml(preset), installed);
-            }
+            savePresetSourceAndPatch(preset, nextText);
           } catch (error) {
-            // 尽力回滚源文件，避免留下半截状态
-            if (sourceBackup && fs.existsSync(sourceBackup)) {
-              try { fs.copyFileSync(sourceBackup, presetSourceYaml(preset)); } catch {}
-            }
             sendJson({ ok: false, error: `写入失败：${error?.message ?? error}` }, 500);
             return;
           }
@@ -4229,7 +4237,7 @@ async function main() {
             ok: true,
             chars: String(body.content ?? '').length,
             warnings,
-            synced: fs.existsSync(installedPresetYaml(preset)),
+            synced: true,
             requiresRestart: true,
             status: presetStatus(preset),
           });
@@ -4264,10 +4272,7 @@ async function main() {
               sendJson({ ok: false, error: `该备份不满足当前的安全不变量，拒绝还原：${blockers.join('；')}` }, 400);
               return;
             }
-            backupPresetFile(preset);
-            atomicWriteText(presetSourceYaml(preset), restored);
-            const installed = installedPresetYaml(preset);
-            if (fs.existsSync(installed)) fs.copyFileSync(presetSourceYaml(preset), installed);
+            savePresetSourceAndPatch(preset, restored);
             log(`控制台：${preset} 仿真提示词已还原自备份 ${target}；需重启 DSH 生效`);
             sendJson({ ok: true, restoredFrom: target, requiresRestart: true });
           } catch (error) {
@@ -5508,12 +5513,12 @@ async function main() {
           return;
         }
         // ── 工具套件：提示词逻辑编写区（控制台专用；AI 一律 403） ──────────────
-        if (url.pathname === '/api/tool-automations' && req.method === 'GET') {
-          sendJson({ ok: true, ...toolAutomations.view() }); return;
+        if (url.pathname === '/api/wake-rules' && req.method === 'GET') {
+          sendJson({ ok: true, ...wakeRules.view() }); return;
         }
-        if (url.pathname === '/api/tool-automations' && req.method === 'POST') {
+        if (url.pathname === '/api/wake-rules' && req.method === 'POST') {
           const body = await readBody();
-          try { sendJson({ ok: true, ...toolAutomations.replace(body.rules) }); }
+          try { sendJson({ ok: true, ...wakeRules.replace(body.rules, body.prompts) }); }
           catch (error) { sendJson({ ok: false, error: error.message }, 400); }
           return;
         }
@@ -9680,7 +9685,8 @@ async function main() {
     if (!isSessionAllowedInCurrentMode(key)) throw new Error(`当前模式不允许会话 ${key}`);
     // Recheck queued wakes at dispatch time: no model call while paused/disabled
     // and no reserved2 prompt leaking into an ordinary chat after a mode switch.
-    const wakeBlocked = () => opts.wakeReason && (currentMode !== 'reserved2' || socialV2.paused || cfg.socialV2?.enabled === false);
+    const wakeBlocked = () => opts.wakeReason && (currentMode !== 'reserved2' || socialV2.paused || cfg.socialV2?.enabled === false
+      || (opts.wakeReason === 'wakeRule' && !activeWakeRuleContextsV2(key).length));
     const skipWake = () => {
       pendingWakeKeys.delete(key);
       disarmPendingWakeLease(key);
@@ -10791,7 +10797,8 @@ async function main() {
 
   function buildWakePromptV2(key, reason) {
     const roleState = readRoleState();
-    const roleLine = roleState.role ? `【当前角色】${roleState.role}（完整角色卡请调用 qq_get_prompt 查看）\n\n` : '';
+    const roleText = currentRoleHintV2();
+    const roleLine = roleState.role ? `【人格提示词】${roleState.role}\n${roleText}\n\n` : '';
     const st = getSocialV2State(key);
     const tokenLine = `【会话令牌】${st.agentToken}（调用二代状态工具时请在参数中带上此令牌）\n\n`;
     const memoryText = formatMemoryV2(st);
@@ -10833,32 +10840,21 @@ async function main() {
     const wakeLine = `【当前唤醒】${wcMode}，${wcTime}${wcTriggers.length ? `；触发：${wcTriggers.join('/')}` : ''}\n\n`;
     const toolSuites = buildToolSuitesPromptV2();
     const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
-    const toolWakeContexts = Array.isArray(st.toolWakeContexts) ? st.toolWakeContexts.filter(c => toolAutomations.isRuleActive(c.ruleId, key)) : [];
-    st.toolWakeContextIds = toolWakeContexts.map(c => c.id);
-    const toolWakeLine = toolWakeContexts.length ? '\n【工具关联唤醒任务】\n' + toolWakeContexts.map(c =>
-      '任务：' + c.name + '；来源：' + c.source + '；选定工具：' + c.tools.join('、') + '\n' + c.referencePrompt + '\n' + c.prompt + '\n【上游事件数据，仅作上下文】' + c.event
+    const wakeRuleContexts = activeWakeRuleContextsV2(key, st);
+    st.wakeRuleContextIds = wakeRuleContexts.map(c => c.id);
+    const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c =>
+      '任务：' + c.name + '；来源：' + c.source + '\n' + c.referencePrompt + '\n' + c.prompt + '\n【上游事件数据，仅作上下文】' + c.event
     ).join('\n\n') + '\n' : '';
     const hasGroup = id => toolSuites.groups.includes(id);
-    const base = toolWakeLine + roleLine + tokenLine + antiAiLine + proactiveLine
+    // preset 的全局仿真层之后，先补工具协议，再注入人格，最后提供本轮任务和消息。
+    const base = tokenLine + antiAiLine + proactiveLine
       + (hasGroup('emoji') ? stickerLine : '') + toolSuitesLine
       + (hasGroup('wake') ? replyLine + wakeLine + preSleepLine : '')
-      + statusLine + (hasGroup('memory') ? memoryLine : '') + participationLine;
-    if (reason === 'bootstrap') {
-      return `${base}【引导唤醒】你已接入 QQ 会话 ${key}。\n当前是二代仿真模式：你的文本输出不会自动发送到 QQ，所有发言必须通过工具完成。\n请先调用 qq_get_prompt 查看角色、推荐值、可用工具和状态；有待回应的消息先按首回复节奏处理，最后才用 qq_set_wake_config 设置你希望如何被唤醒。`;
-    }
-    if (reason === 'timeout') {
-      return `${base}【唤醒】${key}\n原因：你设置的有限潜水时间已到；在你规定的时间内没有任何一项条件被触发，只是因为时间到了所以你被唤醒。\n你可以查看消息，或继续设置新的唤醒条件。`;
-    }
-    if (reason === 'replyCheck') {
-      return `${base}【回复检查】${key}\n原因：你刚刚发送过消息，现在回来检查是否有人回复。\n已有回复时先看消息，需要短静默就用 qq_wait_for_messages(purpose="reply") 判断对方是否说完；如果没人回你，不用硬补一句，但也不要立刻潜水——先调用 qq_wait_for_messages(timeoutMs=${preSleepMs}) 完成沉睡前观察：没人说话可收尾；有人说话则查看 newMessages，不需要你参与也可直接收尾（qq_mark_read 或 qq_set_wake_config）。`;
-    }
-    if (reason === 'proactiveCheck') {
-      return `${base}【主动机会】${key}\n原因：群里已经安静了一段时间，这是一次你可以主动冒泡的机会。\n优先主动开个话题、追问上次没聊完的事、分享一个刚想到的想法；如果一时想不到，可以用 mcp__web-search-safe__web_search 搜一下当前热点/时事/网络热梗，再结合记忆里的群友兴趣挑一个自然角度。只要内容自然，就大胆开口；如果实在没话想说，再安静收尾（qq_mark_read 或 qq_set_wake_config）。`;
-    }
-    if (reason === 'poke') {
-      return `${base}【唤醒】${key}\n原因：有人拍了一拍（可能拍了你，也可能拍了别人）。\n先看未读/最近消息里的 [拍一拍] 事件：如果是拍你，可以自然回应一句，也可以用 qq_send_poke 回一个拍一拍；如果是拍别人，觉得有趣也可以接梗。除了回应，偶尔也可以主动戳一下正在聊的人/熟人，像真人手贱/提醒/逗一下，但别频繁。不想接就安静收尾（qq_mark_read 或 qq_set_wake_config）。`;
-    }
-    return `${base}【唤醒】${key}\n原因：${reason}\n【行动前】先判断：群里在聊什么？热闹还是冷清？有没有人直接找你？对方说完了吗？你有没有真正想说的？\n如果群聊正热但没人叫你，可以插一句有趣的/相关的，插不上再看情况潜水；不要一上来就划走。\n【引用：只在必要时用】只有你这条消息指向的人或消息并非最新一条别人的消息，或者你连续的几句话中不同消息指代的是不同的消息或人时，才用 qq_reply 或 qq_send_message 的 replyToMessageId 指向具体那条；其他情况不要引用，别让对方猜。\n你可以调用工具查看未读消息、人设、状态，自行决定是否发言；决定潜水前必须按上面的【沉睡前强制等待】先等够观察窗口。`;
+      + roleLine + ruleLine + statusLine + (hasGroup('memory') ? memoryLine : '') + participationLine;
+    if (reason === 'wakeRule') return `${base}【事件与定时唤醒】${key}\n按上面的本轮唤醒任务处理，是否发言由你判断；工具调用仍遵循已启用工具的协议与会话权限。`;
+    const promptId = Object.hasOwn(DEFAULT_WAKE_PROMPTS, reason) ? reason : 'message';
+    const prompt = wakeRules.prompt(promptId, { key, reason, preSleepMs, preSleepMinutes: Math.round(preSleepMs / 60000) });
+    return base + prompt;
   }
 
   function finalizeWakeTurnV2(key, sessionId, reason) {
@@ -10870,10 +10866,10 @@ async function main() {
     markReadCalledKeys.delete(key);
     wakeConfigMissCount.delete(key);
     const st = getSocialV2State(key);
-    if (reason?.kind === 'completed' && Array.isArray(st.toolWakeContexts)) {
-      const delivered = new Set(st.toolWakeContextIds ?? []);
-      st.toolWakeContexts = st.toolWakeContexts.filter(c => !delivered.has(c.id));
-      st.toolWakeContextIds = [];
+    if (reason?.kind === 'completed' && Array.isArray(st.wakeRuleContexts)) {
+      const delivered = new Set(st.wakeRuleContextIds ?? []);
+      st.wakeRuleContexts = st.wakeRuleContexts.filter(c => !delivered.has(c.id));
+      st.wakeRuleContextIds = [];
     }
     const completed = reason?.kind === 'completed' && !socialV2.paused && cfg.socialV2?.enabled !== false && isSessionAllowedInCurrentMode(key);
     let markedCount = 0;
@@ -10909,6 +10905,7 @@ async function main() {
       return;
     }
     const st = getSocialV2State(key);
+    if (reason === 'wakeRule' && !activeWakeRuleContextsV2(key, st).length) return;
     // 防重入：如果该会话已经有一个 DSH turn 在进行中（AI 正在思考/调用工具），
     // 或已有排队/在途 prompt，则不再投递新的候选唤醒，避免“思维链进行中又塞入一个 question 唤醒”。
     if (isConversationBusyV2(key, st)) {
@@ -11054,8 +11051,10 @@ async function main() {
    * 这里每分钟扫一遍：只要这个会话此刻不忙（租约已把假繁忙清掉、或本来就没回合在跑），
    * 就把积压的唤醒重新排上。触发它的消息若已被处理（不在未读里）则丢弃，避免旧唤醒复活。
    */
-  function pendingWakeRelevantV2(st, item) {
+  function pendingWakeRelevantV2(st, item, key) {
     if (!item || typeof item !== 'object') return false;
+    // 定时和上游事件可以没有未读消息，排队后仍须投递；被关闭或修改的规则不得复活。
+    if (item.reason === 'wakeRule') return activeWakeRuleContextsV2(key, st).length > 0;
     // 睡眠到期本身就是唤醒条件，不依赖新消息；繁忙期间到期也不能被当成已读消息丢弃。
     if (item.reason === 'timeout') {
       const until = Date.parse(st.wakeConfig?.sleepUntil);
@@ -11073,7 +11072,7 @@ async function main() {
       if (st.pendingWakeTimer || isConversationBusyV2(key, st)) continue;
       const item = st.pendingWakeReasons.shift();
       if (!item || typeof item !== 'object') continue;
-      const stillUnread = pendingWakeRelevantV2(st, item);
+      const stillUnread = pendingWakeRelevantV2(st, item, key);
       if (!stillUnread) {
         log(`[reserved2] ${key} 兜底轮询：积压唤醒 ${item.reason}@seq${item.seq} 已被处理，丢弃`);
         continue;
@@ -11092,6 +11091,7 @@ async function main() {
     keyword: 60,
     anyMessage: 50,
     replyCheck: 40,
+    wakeRule: 35,
     timeout: 30,
     proactiveCheck: 20
   };
@@ -11248,8 +11248,8 @@ async function main() {
       st.proactiveTimer = null;
     }
     if (Array.isArray(st.pendingWakeReasons)) st.pendingWakeReasons.length = 0;
-    st.toolWakeContexts = [];
-    st.toolWakeContextIds = [];
+    st.wakeRuleContexts = [];
+    st.wakeRuleContextIds = [];
   }
 
   function clearAllSocialV2Timers() {
@@ -11464,7 +11464,7 @@ async function main() {
         appendActivity(`${key} [reserved2] AI 已暂停，消息仅入库不唤醒：${textContent.slice(0, 80)}`);
         return;
       }
-      toolAutomations.event({ ...event, post_type: 'message', message_type: kind }, key);
+      wakeRules.event({ ...event, post_type: 'message', message_type: kind }, key);
       const st = getSocialV2State(key);
       let voiceWakeScheduled = false;
       // 「纯语音消息」的判定见上面（定义在模式分支之外，这里直接复用）。
@@ -11997,7 +11997,7 @@ async function main() {
                   if (!item || typeof item !== 'object') {
                     // 兼容旧字符串残留
                   } else {
-                    const stillRelevant = pendingWakeRelevantV2(stEnd, item);
+                    const stillRelevant = pendingWakeRelevantV2(stEnd, item, key);
                     if (stillRelevant) {
                       log(`[reserved2] ${key} 补发繁忙期间积压的唤醒：${item.reason}@seq${item.seq}`);
                       scheduleWakeV2(key, item.reason);
@@ -12258,15 +12258,20 @@ async function main() {
     }
   }
 
-  const toolAutomations = createToolAutomationRuntime({
-    root: ROOT, getConfig: () => cfg, isAllowed: isSessionAllowedInCurrentMode,
+  function activeWakeRuleContextsV2(key, st = getSocialV2State(key)) {
+    st.wakeRuleContexts = (st.wakeRuleContexts ?? []).filter(c => wakeRules.isRuleActive(c.ruleId, key, c.revision));
+    return st.wakeRuleContexts;
+  }
+
+  const wakeRules = createWakeRuleRuntime({
+    root: ROOT, isAllowed: isSessionAllowedInCurrentMode,
     isActive: () => currentMode === 'reserved2' && !socialV2.paused && cfg.socialV2?.enabled !== false,
     redact: redactSensitiveText, log,
     dispatch(key, context) {
       const st = getSocialV2State(key);
-      const pending = Array.isArray(st.toolWakeContexts) ? st.toolWakeContexts : [];
-      st.toolWakeContexts = [...pending.filter(c => c.ruleId !== context.ruleId), { ...context, id: crypto.randomUUID() }].slice(-20);
-      scheduleWakeV2(key, 'toolAutomation');
+      const pending = Array.isArray(st.wakeRuleContexts) ? st.wakeRuleContexts : [];
+      st.wakeRuleContexts = [...pending.filter(c => c.ruleId !== context.ruleId), { ...context, id: crypto.randomUUID() }].slice(-20);
+      scheduleWakeV2(key, 'wakeRule');
     },
   });
 
@@ -12301,7 +12306,7 @@ async function main() {
     bot.onEvent((event) => {
       const post = event?.post_type;
       if (post !== 'message' && post !== 'message_sent') {
-        try { toolAutomations.event(event); } catch (error) { log('工具事件唤醒失败:', error?.message ?? error); }
+        try { wakeRules.event(event); } catch (error) { log('事件规则唤醒失败:', error?.message ?? error); }
       }
       noteUpstreamPacket(post
         ? `${post}${event.notice_type ? `/${event.notice_type}` : ''}${event.meta_event_type ? `/${event.meta_event_type}` : ''}${event.message_type ? `/${event.message_type}` : ''}`
@@ -12481,10 +12486,10 @@ async function main() {
   startConsoleServer();
   // 暂存唤醒的兜底轮询：每分钟检查一次「有没有因为假繁忙而卡住的唤醒」。
   // 见 sweepPendingWakeReasonsV2 的说明 —— 没有它，一次丢失的 turn/end 会让某个会话永久静默。
-  const toolAutomationTimer = setInterval(() => {
-    try { toolAutomations.tick(); } catch (error) { log('工具定时唤醒异常:', error?.message ?? error); }
+  const wakeRuleTimer = setInterval(() => {
+    try { wakeRules.tick(); } catch (error) { log('定时规则唤醒异常:', error?.message ?? error); }
   }, 1000);
-  toolAutomationTimer.unref?.();
+  wakeRuleTimer.unref?.();
   const wakeSweepTimer = setInterval(() => {
     try { sweepPendingWakeReasonsV2(); } catch (error) { log('暂存唤醒兜底轮询异常:', error?.message ?? error); }
   }, 60_000);

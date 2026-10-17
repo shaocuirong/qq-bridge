@@ -14,7 +14,7 @@ const args = process.argv.slice(2);
 const original = args.includes('--original');
 const record = args.includes('--record-baseline');
 const artifacts = args.find(x => x.startsWith('--artifacts='))?.slice('--artifacts='.length);
-const views = ['overview', 'sessions', 'persona', 'social-v2', 'social-v1', 'slang', 'persons', 'usage', 'access', 'operations', 'reference'];
+const views = ['overview', 'sessions', 'persona', ...(!original ? ['simulation', 'wake'] : []), 'social-v2', 'social-v1', 'slang', 'persons', 'usage', 'access', 'operations', 'reference'];
 const legacyIds = JSON.parse((await readFile(join(here, 'console-ui-legacy-ids.json'), 'utf8')).replace(/^\uFEFF/, ''));
 const baselinePath = join(here, 'console-ui-contracts.json');
 if (record && !original) throw new Error('--record-baseline requires --original; only the pre-redesign console can define the baseline.');
@@ -96,11 +96,12 @@ try {
   await test('All 225 legacy IDs remain present and every DOM ID is unique', async () => {
     const ids = await page.locator('[id]').evaluateAll(nodes => nodes.map(x => x.id));
     assert.equal(legacyIds.length, 225);
-    assert.deepEqual(legacyIds.filter(x => !ids.includes(x)), []);
+    assert.deepEqual(legacyIds.filter(x => !ids.includes(x) && (original || x !== 'v2Tools')), []);
+    if (!original) assert.ok(ids.includes('tsGroups'), '旧 v2Tools 已迁到独立的工具管理模块');
     assert.equal(new Set(ids).size, ids.length, 'Duplicate DOM IDs detected');
   });
 
-  if (!original) await test('All eleven navigation destinations work and preserve unsaved form values across polling', async () => {
+  if (!original) await test('All navigation destinations work and preserve unsaved form values across polling', async () => {
     for (const view of views) {
       await navigate(view);
       const visiblePages = await page.locator('[data-page]').evaluateAll(nodes => nodes.filter(x => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden').map(x => x.dataset.page));
@@ -167,7 +168,7 @@ try {
     await page.waitForFunction(() => document.getElementById('stateDirWarn')?.style.display === 'none');
   });
 
-  await test('Second-generation complete save payload, units, zero values and tool switches', async () => {
+  await test('Wake and general parameters save independently with correct units and zero values', async () => {
     await fill('v2AgentPreset', 'contract-v2');
     await fill('v2RecSleepMin', 7);
     await fill('v2SleepMinMs', 42);
@@ -178,10 +179,7 @@ try {
     await fill('v2WaitDefaultQuietMs', 0);
     await fill('v2MaxSendMin', 0);
     await check('v2ProvideRecommendations', false);
-    const firstTool = page.locator('[data-v2-tool]').first();
-    await reveal('[data-v2-tool]');
-    await firstTool.setChecked(false);
-    const body = await clickWrite('#v2ConfigSaveTop', '/api/socialV2/config');
+    const body = await clickWrite('#wakeConfigSave', '/api/socialV2/config');
     assert.equal(body.wake.recommendedSleepMinMs, 420000);
     assert.equal(body.wake.sleepMinMs, 42000);
     assert.equal(body.wake.preSleepWaitMs, 0);
@@ -189,12 +187,14 @@ try {
     assert.deepEqual(body.wake.recommendedKeywords, ['鲸鱼', 'DeepSeek', '测试']);
     assert.equal(body.autoReplyCheckMs, 17000);
     assert.equal(body.wait.defaultQuietMs, 0);
-    assert.equal(body.send.maxSendPerMinute, 0);
-    assert.equal(body.provideRecommendations, false);
-    assert.equal(body.tools[await firstTool.getAttribute('data-v2-tool')], false);
-    // The lower save button must submit the same complete configuration.
+    assert.equal(body.send, undefined);
+    assert.equal(body.enabled, undefined);
+    const general = await clickWrite('#v2ConfigSaveTop', '/api/socialV2/config');
+    assert.equal(general.send.maxSendPerMinute, 0);
+    assert.equal(general.provideRecommendations, false);
+    assert.equal(general.wake, undefined);
     await page.waitForFunction(() => document.getElementById('v2AgentPreset').value === 'contract-v2');
-    assert.deepEqual(await clickWrite('#v2ConfigSave', '/api/socialV2/config'), body);
+    assert.deepEqual(await clickWrite('#v2ConfigSave', '/api/socialV2/config'), general);
     assert.deepEqual(await clickWrite('#v2PauseBtn', '/api/socialV2/activity'), { paused: true });
     assert.deepEqual(await clickWrite('#v2ResumeBtn', '/api/socialV2/activity'), { paused: false });
   });
@@ -268,9 +268,11 @@ try {
     assert(results.every(x => x.ok), 'Cannot record a baseline from a failed suite');
     await writeFile(baselinePath, JSON.stringify(fixture.requests, null, 2) + '\n');
     console.log(`Recorded original API contracts: ${baselinePath}`);
-  } else await test('All submitted payloads exactly match the pre-redesign console baseline', async () => {
+  } else await test('Unchanged API payloads still match the pre-redesign baseline', async () => {
     const expected = JSON.parse(await readFile(baselinePath, 'utf8'));
-    assert.deepEqual(fixture.requests, expected);
+    // 唤醒与一般参数已分开保存，新的部分写入契约由上面的用例逐项验证。
+    const unchanged = rows => rows.filter(row => row.path !== '/api/socialV2/config');
+    assert.deepEqual(unchanged(fixture.requests), unchanged(expected));
   });
 
   if (!original) await test('Token usage panel renders totals, per-conversation and per-turn cost', async () => {
@@ -495,17 +497,15 @@ try {
     assert.match(await page.locator('#roleCreateMsg').textContent(), /已删除/);
   });
 
-  if (!original) await test('仿真提示词默认可查看、解锁后可编辑、保存后提示需重启 DSH', async () => {
-    await navigate('persona');
+  if (!original) await test('仿真提示词独立一页，当前预设可直接编辑，保存后提示需重启 DSH', async () => {
+    await navigate('simulation');
     await page.waitForFunction(() => document.getElementById('simPromptText').value.length > 0);
-    assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), '', '默认应为只读');
-    assert.equal(await page.locator('#simPromptSave').isDisabled(), true, '只读时不应能保存');
+    assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), null, '当前内容可直接编辑');
+    assert.equal(await page.locator('#simPromptSave').isDisabled(), true, '未改动时不应写文件');
     assert.match(await page.locator('#layer-note, .layer-note').first().textContent(), /仿真提示词/, '页面应说明两层提示词的边界');
-    await page.locator('#simPromptEdit').click();
-    assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), null, '解锁后应可编辑');
-    assert.equal(await page.locator('#simPromptSave').isDisabled(), false);
     const edited = (await page.locator('#simPromptText').inputValue()) + '\n\n【回归追加】一句测试规则。';
     await page.locator('#simPromptText').fill(edited);
+    assert.equal(await page.locator('#simPromptSave').isDisabled(), false);
     const [saved] = await Promise.all([
       page.waitForResponse(r => new URL(r.url()).pathname === '/api/preset/sim-prompt' && r.request().method() === 'POST'),
       page.locator('#simPromptSave').click(),
@@ -513,11 +513,11 @@ try {
     assert.equal(saved.status(), 200);
     assert.equal((await saved.json()).ok, true);
     assert.match(await page.locator('#simPromptMsg').textContent(), /重启 DSH/, '保存后必须提示重启 DSH');
-    assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), '', '保存后应回到只读');
+    assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), null, '保存后仍可继续编辑');
   });
 
   if (!original) await test('仿真提示词可切换到一代/二代，两代内容相互独立', async () => {
-    await navigate('persona');
+    await navigate('simulation');
     await page.waitForFunction(() => document.getElementById('simPromptText').value.length > 0);
     const v2 = await page.locator('#simPromptText').inputValue();
     assert.match(await page.locator('#simPromptStatus').textContent(), /二代仿真|qq-chat-v2/);
@@ -529,6 +529,27 @@ try {
     // 切回二代，避免影响后续断言
     await page.locator('#simPromptPreset').selectOption('qq-chat-v2');
     await page.waitForFunction((prev) => document.getElementById('simPromptText').value === prev, v2);
+  });
+
+  if (!original) await test('独立唤醒页保存规则无需关联工具，场景文案可单独保存', async () => {
+    await navigate('wake');
+    await page.waitForFunction(() => document.querySelector('#wakePromptSelect')?.options.length === 6);
+    assert.equal(await page.locator('#tsGroups [data-tab="wake"]').count(), 0);
+    await page.getByRole('button', { name: '新增定时任务', exact: true }).click();
+    await page.locator('#wakeRuleEditor label.wm-check').filter({ hasText: '群聊 123456789' }).locator('input').setChecked(true);
+    await page.locator('#wakeRuleInterval').fill('5');
+    const body = await clickWrite('#wakeRuleEditor button:has-text("保存规则")', '/api/wake-rules');
+    assert.deepEqual(body.rules[0].keys, ['group:123456789']);
+    assert.deepEqual(body.rules[0].events, []);
+    assert.equal(body.rules[0].intervalMinutes, 5);
+    assert.equal(body.rules[0].enabled, false);
+    assert.equal(Object.hasOwn(body.rules[0], 'tools'), false);
+    await page.waitForFunction(() => !document.getElementById('wakeRuleEditor'));
+    await page.locator('#wakeBuiltin summary').click();
+    assert.match(await page.locator('#wakeBuiltinPrompt').inputValue(), /【行动前】/);
+    await page.locator('#wakeBuiltinPrompt').fill('结合 {{key}} 判断是否回复。');
+    assert.deepEqual(await clickWrite('#wakeBuiltin button:has-text("保存场景提示词")', '/api/wake-rules'), { prompts: { message: '结合 {{key}} 判断是否回复。' } });
+    assert.equal(await page.locator('[data-wake-rule]').count(), 1);
   });
 
   if (!original) await test('人格注入上限可调，且随模式筛选后统计', async () => {

@@ -2,7 +2,7 @@
 (() => {
   const host = document.getElementById('tsGroups');
   if (!host) return;
-  const state = { groups: [], group: 'all', tab: 'tools', query: '', selected: null, key: '', busy: false, automations: { rules: [], eventTypes: [], references: {} }, automationDraft: null };
+  const state = { groups: [], group: 'all', tab: 'tools', query: '', selected: null, key: '', busy: false };
   const promptDrafts = new Map();
   const callDrafts = new Map();
   const el = (tag, text, cls) => {
@@ -37,8 +37,8 @@
   }
   async function load() {
     try {
-      const [result, automations] = await Promise.all([request('/api/socialV2/tool-prompts'), request('/api/tool-automations')]);
-      state.groups = result.groups || []; state.automations = automations; render();
+      const result = await request('/api/socialV2/tool-prompts');
+      state.groups = result.groups || []; render();
     } catch (error) { report(`加载失败：${error.message}`, true); }
   }
   async function save(patch, success = '配置已保存；请重启 DSH 刷新工具清单。') {
@@ -83,13 +83,12 @@
       main.append(actionsBar);
     }
     const tabs = el('div', undefined, 'tm-tabs');
-    for (const [id, label] of [['tools', '工具清单'], ['actions', '动作目录'], ['prompts', '私有提示词'], ['wake', '事件与定时唤醒']]) {
+    for (const [id, label] of [['tools', '工具清单'], ['actions', '动作目录'], ['prompts', '私有提示词']]) {
       const tab = button(label, () => { state.tab = id; state.selected = null; render(); });
       tab.setAttribute('aria-pressed', String(state.tab === id)); tab.dataset.tab = id; tabs.append(tab);
     }
     main.append(tabs);
     if (state.tab === 'prompts') { renderPrompts(); return; }
-    if (state.tab === 'wake') { renderAutomations(); return; }
     const grid = el('div', undefined, 'tm-grid');
     for (const g of activeGroups()) {
       if (state.tab === 'tools') {
@@ -127,7 +126,7 @@
     if (state.busy) host.querySelectorAll('button,input[type=checkbox]').forEach(n => { n.disabled = true; });
   }
   function renderPrompts() {
-    const global = el('a', '编辑全局提示词 → 人格与角色'); global.href = '#persona';
+    const global = el('a', '编辑全局提示词 → 仿真提示词'); global.href = '#simulation';
     main.append(global, el('p', '以下协议只在对应工具组有可用工具时内联；关闭注入可单独停用该组私有提示词。', 'meta'));
     for (const g of activeGroups().filter(g => g.defaultText || g.text)) {
       const card = el('div', undefined, 'tm-card tm-prompt');
@@ -149,72 +148,6 @@
       }), button('恢复默认到编辑框', () => { draft.text = g.defaultText; promptDrafts.set(g.id, draft); render(); }), count);
       card.append(title, enabled, textarea, bar); main.append(card);
     }
-  }
-  function renderAutomations() {
-    main.append(el('p', '每条规则可关联一个或多个工具，并分别选择消息/通知/申请唤醒与定时任务。只有选定工具仍启用、目标仍在白名单且二代 AI 未暂停时才会触发。', 'meta'));
-    const list = el('div', undefined, 'tm-grid');
-    for (const rule of state.automations.rules) {
-      if (state.group !== 'all') {
-        const group = state.groups.find(g => g.id === state.group);
-        const names = [...(group.legacyTools || []), ...(group.mcpTools || [])].map(t => t.name);
-        if (!rule.tools.some(t => names.includes(t))) continue;
-      }
-      const card = el('article', undefined, 'tm-card');
-      card.append(el('h4', rule.name), el('p', rule.tools.join('、')),
-        el('p', `${rule.events.length} 类事件 · 定时 ${rule.intervalMinutes ? rule.intervalMinutes + ' 分钟' : '关闭'}`),
-        toggle('启用此规则', rule.enabled, enabled => saveAutomationRules(state.automations.rules.map(r => r.id === rule.id ? { ...r, enabled } : r))),
-        button('编辑规则', () => { state.automationDraft = structuredClone(rule); render(); }));
-      list.append(card);
-    }
-    main.append(list, button('新增工具唤醒规则', () => {
-      state.automationDraft = { id: crypto.randomUUID(), name: '新的工具唤醒', enabled: false, tools: [], keys: [], events: ['message'], intervalMinutes: 0, cooldownSeconds: 60, reference: 'message', prompt: '结合 {{event}} 与当前会话 {{key}}，按选定工具的私有协议判断是否需要行动。' };
-      render();
-    }));
-    const draft = state.automationDraft; if (!draft) return;
-    const editor = el('div', undefined, 'tm-card tm-detail'); editor.id = 'tmAutomationEditor';
-    const field = (text, input) => { const label = el('label', text); label.append(input); editor.append(label); return input; };
-    editor.append(el('h3', '工具唤醒规则'));
-    const name = el('input'); name.value = draft.name; name.oninput = () => { draft.name = name.value; }; field('规则名称', name);
-    editor.append(toggle('规则总开关', draft.enabled, value => { draft.enabled = value; }));
-    const tools = el('select'); tools.id = 'tmAutomationTools'; tools.multiple = true; tools.size = 8; tools.style.width = '100%';
-    for (const g of state.groups) {
-      const optgroup = el('optgroup'); optgroup.label = g.label;
-      for (const tool of [...g.legacyTools, ...g.mcpTools]) { const o = el('option', `${tool.name}${tool.enabled ? '' : '（当前未启用）'}`); o.value = tool.name; o.selected = draft.tools.includes(tool.name); optgroup.append(o); }
-      tools.append(optgroup);
-    }
-    tools.onchange = () => { draft.tools = [...tools.selectedOptions].map(o => o.value); }; field('关联工具（可多选）', tools);
-    const keys = el('input'); keys.id = 'tmAutomationKeys'; keys.value = draft.keys.join(', '); keys.placeholder = 'group:123, private:456';
-    keys.oninput = () => { draft.keys = keys.value.split(/[,，\s]+/).filter(Boolean); }; field('目标会话（须在白名单内）', keys);
-    editor.append(toggle('收到消息时唤醒', draft.events.includes('message'), checked => { draft.events = draft.events.filter(e => e !== 'message'); if (checked) draft.events.push('message'); }));
-    const events = el('select'); events.id = 'tmAutomationEvents'; events.multiple = true; events.size = 7; events.style.width = '100%';
-    for (const item of state.automations.eventTypes.filter(e => e.id !== 'message')) { const o = el('option', item.label); o.value = item.id; o.selected = draft.events.includes(item.id); events.append(o); }
-    events.onchange = () => { draft.events = [...(draft.events.includes('message') ? ['message'] : []), ...[...events.selectedOptions].map(o => o.value)]; }; field('其他 SnowLuma 事件（可多选）', events);
-    const interval = el('input'); interval.id = 'tmAutomationInterval'; interval.type = 'number'; interval.min = '0'; interval.max = '43200'; interval.value = draft.intervalMinutes;
-    interval.oninput = () => { draft.intervalMinutes = Number(interval.value); }; field('定时间隔（分钟；0 关闭，最短 1 分钟）', interval);
-    const cooldown = el('input'); cooldown.type = 'number'; cooldown.min = '10'; cooldown.value = draft.cooldownSeconds;
-    cooldown.oninput = () => { draft.cooldownSeconds = Number(cooldown.value); }; field('同一会话触发冷却（秒）', cooldown);
-    const reference = el('select');
-    for (const [value, label] of [['', '不注入参考提示词'], ['message', '消息唤醒回复参考'], ['proactive', '随机搭话 / 主动机会参考'], ['event', '上游事件处理参考']]) { const o = el('option', label); o.value = value; o.selected = value === (draft.reference || ''); reference.append(o); }
-    reference.onchange = () => { draft.reference = reference.value || null; }; field('可选参考提示词', reference);
-    const prompt = el('textarea'); prompt.id = 'tmAutomationPrompt'; prompt.rows = 8; prompt.maxLength = 8000; prompt.style.width = '100%'; prompt.value = draft.prompt;
-    prompt.oninput = () => { draft.prompt = prompt.value; }; field('本规则的唤醒提示词（可用 {{key}}、{{tools}}、{{time}}、{{event}}）', prompt);
-    editor.append(button('复制参考到编辑框', () => { if (draft.reference) { draft.prompt = state.automations.references[draft.reference] + '\n\n' + draft.prompt; draft.reference = null; render(); } }));
-    const actions = el('div', undefined, 'tm-actions');
-    actions.append(button('保存唤醒规则', async () => {
-      const rules = state.automations.rules.filter(r => r.id !== draft.id); rules.push(draft);
-      if (await saveAutomationRules(rules)) { state.automationDraft = null; render(); }
-    }), button('放弃编辑', () => { state.automationDraft = null; render(); }));
-    if (state.automations.rules.some(r => r.id === draft.id)) actions.append(button('删除规则', async () => { if (confirm('删除此工具唤醒规则？') && await saveAutomationRules(state.automations.rules.filter(r => r.id !== draft.id))) { state.automationDraft = null; render(); } }));
-    editor.append(actions); main.append(editor);
-  }
-  async function saveAutomationRules(rules) {
-    if (state.busy) return false;
-    state.busy = true;
-    try {
-      state.automations = await request('/api/tool-automations', 'POST', { rules });
-      report('唤醒规则已保存并生效；定时任务从保存时重新计时。'); return true;
-    } catch (error) { report(`保存唤醒规则失败：${error.message}`, true); return false; }
-    finally { state.busy = false; render(); }
   }
   function parameterTable(schema) {
     const table = el('table', undefined, 'tm-params'); const head = el('tr');

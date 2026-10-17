@@ -29,8 +29,11 @@ import * as stateAcl from '../src/state-acl.mjs';
 import * as qqToolGroups from '../src/qq-tool-groups.js';
 import * as toolCatalog from '../src/tool-catalog.js';
 import * as toolProtocols from '../src/tool-protocols.js';
-import * as toolAutomationsLib from '../src/tool-automations.js';
+import * as wakeRulesLib from '../src/wake-rules.js';
+import * as wakePromptsLib from '../src/wake-prompts.js';
+import { renderPatch as renderPresetBundlePatch } from './build-agent-preset-patches.mjs';
 import * as roleCard from '../src/role-card.js';
+import * as presetPromptLib from '../src/preset-prompt.js';
 import * as toolPrompts from '../src/tool-prompts.js';
 import { unwrap, createTurnCollector } from '../src/dsh-client.js';
 
@@ -127,7 +130,7 @@ export async function bridgeHarness({ config = {}, savedState, globals = {} } = 
   return {
     ensureSession, ensureSlangLearnerSession, ensurePersonLearnerSession, resolvePresetName, deliverPrompt, drainPromptQueue,
     sendToQQ, sendStickerV2, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
-    getSocialV2State, appendSocialV2Message, recordSentMessagesV2, toolAutomations,
+    getSocialV2State, appendSocialV2Message, recordSentMessagesV2, wakeRules,
     buildWakePromptV2, buildWakeSnapshotV2, sendWakePromptV2, socialV2,
     flushQueue, retireSession,
     voiceCfg, voiceLibrary, resolveVoicePathForV2, resolveVoicePathForOperator,
@@ -164,7 +167,7 @@ export async function bridgeHarness({ config = {}, savedState, globals = {} } = 
     SnowLumaWebSocketClient: FakeBot, text: (s) => s,
     discoverDshLaunchToken: () => '', unwrap, createTurnCollector,
     ...markdown, ...sensitive, ...wait, ...safeFetch, ...forward, ...slang, ...personMemory, ...sticker,
-    ...modelPrices, ...tokenLedger, ...voiceLib, ...stateAcl, ...waitLock, ...qqToolGroups, ...toolPrompts, ...toolCatalog, ...toolProtocols, ...toolAutomationsLib, ...roleCard,
+    ...modelPrices, ...tokenLedger, ...voiceLib, ...stateAcl, ...waitLock, ...qqToolGroups, ...toolPrompts, ...toolCatalog, ...toolProtocols, ...wakeRulesLib, ...wakePromptsLib, ...roleCard, ...presetPromptLib, renderPresetBundlePatch,
     readToolPrompts: toolPrompts.readPrompts, writeToolPrompt: toolPrompts.writePrompt,
     ensureToolPrompts: toolPrompts.ensureDefaults, actionEnabledPure: qqToolGroups.actionEnabled,
     // 入站语音识别（ASR）：纯函数照实给（配置归一化/规范 WAV 判定），但 createVoiceAsr 默认**桩掉** ——

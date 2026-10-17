@@ -1766,8 +1766,10 @@ button:active:not(:disabled) {
     <nav id="mainNav">
       <button data-view="overview" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">◫</span>运行总览</button>
       <button data-view="sessions" class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span>会话与审批<span class="nav-count" id="pendingCount">—</span></button>
-      <button data-view="persona" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格与角色</button>
+      <button data-view="persona" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格提示词</button>
       <div class="nav-label">聊天行为</div>
+      <button data-view="simulation" class="nav-item"><span class="nav-icon" aria-hidden="true">≡</span>仿真提示词</button>
+      <button data-view="wake" class="nav-item"><span class="nav-icon" aria-hidden="true">◷</span>事件与定时唤醒</button>
       <button data-view="social-v2" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>二代仿真<span class="nav-note">V2</span></button>
       <button data-view="social-v1" class="nav-item"><span class="nav-icon" aria-hidden="true">◇</span>一代仿真<span class="nav-note">V1</span></button>
       <button data-view="slang" class="nav-item"><span class="nav-icon" aria-hidden="true">▤</span>黑话词库</button>
@@ -1825,17 +1827,10 @@ button:active:not(:disabled) {
       <pre id="activity">（空）</pre>
     </section>
 <section id="section-persona" data-page="persona" class="card span-all">
-      <h2>人格与角色</h2>
+      <h2>人格提示词</h2>
       <div class="meta">当前人格：<span id="roleText">-</span> ｜ 状态：<span id="roleModeText">-</span></div>
 
-      <div class="layer-note">
-        <strong>两层提示词的分工</strong>
-        <ol>
-          <li><b>仿真提示词</b>（预设内置）：AI 怎么调工具、怎么参与群聊 —— <i>行为与协议</i>。</li>
-          <li><b>人格提示词</b>（本页编辑）：AI 是谁、什么性格、怎么说话 —— <i>人设与语气</i>。</li>
-        </ol>
-        <p>每条消息发给 AI 时，按 <code>仿真提示词 → 人格提示词 → 本轮消息</code> 的顺序拼装。人格层保存即生效；仿真层需重启 DSH。</p>
-      </div>
+      <p class="meta">这里只管理 AI 是谁、什么性格、怎么说话。保存即影响下一轮消息。行为与工具协议请到 <a href="#simulation">仿真提示词</a>，触发条件请到 <a href="#wake">事件与定时唤醒</a>。</p>
 
       <h3>人格列表 <span class="meta" id="roleListHint"></span></h3>
       <div id="roleList" class="persona-list">加载中…</div>
@@ -1877,6 +1872,19 @@ button:active:not(:disabled) {
         </div>
       </details>
 
+    </section>
+<section id="section-simulation" data-page="simulation" class="card span-all">
+      <h2>仿真提示词</h2>
+      <div class="layer-note">
+        <strong>两层提示词的分工</strong>
+        <ol>
+          <li><b>仿真提示词</b>（预设内置）：AI 怎么调工具、怎么参与群聊 —— <i>行为与协议</i>。</li>
+          <li><b>人格提示词</b>（人格页编辑）：AI 是谁、什么性格、怎么说话 —— <i>人设与语气</i>。</li>
+        </ol>
+        <p>每条消息发给 AI 时，按 <code>仿真提示词 → 人格提示词 → 本轮消息</code> 的顺序拼装。人格层保存即生效；仿真层需重启 DSH。</p>
+      </div>
+
+      <p class="meta">编辑框读取当前预设已有的完整内容。工具私有协议仍在 <a href="#reference">MCP 工具管理</a> 按启用的组注入；本页管理全局行为与协议。</p>
       <h3 class="layer-heading">仿真提示词（预设内置）<span class="meta" id="simPromptStatus">加载中…</span></h3>
       <div class="row" style="margin-bottom:8px">
         <label style="flex:0 0 auto">仿真代次</label>
@@ -1887,9 +1895,8 @@ button:active:not(:disabled) {
         <span class="meta">两代机制不同（一代空格分条 / 二代一切皆工具），提示词各自独立。</span>
       </div>
       <div class="meta" id="simPromptWarnings"></div>
-      <textarea id="simPromptText" class="code-area" spellcheck="false" readonly></textarea>
+      <textarea id="simPromptText" class="code-area" spellcheck="false" aria-label="仿真提示词内容"></textarea>
       <div class="row" style="margin-top:8px">
-        <button id="simPromptEdit">编辑</button>
         <button id="simPromptSave" disabled>保存并同步到 DSH</button>
         <button id="simPromptRestore">还原上次备份</button>
         <button id="simPromptCancel" disabled>取消编辑</button>
@@ -1897,6 +1904,102 @@ button:active:not(:disabled) {
       </div>
       <div class="meta" id="simPromptRestart"></div>
     </section>
+<section id="section-wake" data-page="wake" class="card span-all">
+  <h2>事件与定时唤醒</h2>
+  <div id="wakeManager">正在读取唤醒规则…</div>
+</section>
+<section id="section-wake-settings" data-page="wake" class="card span-all">
+  <h2>现有唤醒参数与状态</h2>
+  <p class="meta">消息条件由每个会话的 AI 唤醒配置决定；主动机会沿用安静时长、随机间隔与概率。所有入口共用合并窗口、繁忙队列和唤醒限频。</p>
+<details class="settings-group"><summary>唤醒推荐值（仅参考，AI 可不遵守）</summary><div class="settings-content">
+      <div class="row">
+        <label style="flex:1">默认模式</label>
+        <select id="v2WakeDefaultMode" style="width:120px"><option value="diving">潜水</option><option value="active">活跃</option></select>
+        <label style="flex:1">默认下一次唤醒：无限期（永久）</label><input type="checkbox" id="v2RecDefaultInfinite" style="width:auto">
+      </div>
+      <div class="row">
+        <label style="flex:1">推荐潜水时长（分）</label>
+        <input type="number" id="v2RecSleepMin" min="1" style="width:80px"> ~
+        <input type="number" id="v2RecSleepMax" min="1" style="width:80px">
+      </div>
+      <div class="row">
+        <label style="flex:1">推荐普通消息概率</label><input type="number" id="v2RecProb" step="0.05" min="0" max="1" style="width:80px">
+      </div>
+      <div class="row">
+        <label style="flex:1">推荐关键词（逗号分隔）</label><input type="text" id="v2RecKeywords" placeholder="小鲸鱼, DeepSeek" style="flex:1">
+      </div>
+      <div class="row">
+        <label style="flex:1">推荐 @ 唤醒</label><input type="checkbox" id="v2RecAt" style="width:auto">
+        <label style="flex:1">推荐名字唤醒</label><input type="checkbox" id="v2RecName" style="width:auto">
+        <label style="flex:1">推荐提问唤醒</label><input type="checkbox" id="v2RecQuestion" style="width:auto">
+        <label style="flex:1">推荐拍一拍唤醒</label><input type="checkbox" id="v2RecPoke" style="width:auto">
+      </div>
+      <label>唤醒推荐提示（给 AI 看的文字）</label>
+      <textarea id="v2WakeHint" rows="2" placeholder="例如：如果你在潜水，推荐 5~120 分钟、普通消息概率 0.05…"></textarea>
+
+      </div></details>
+<details class="settings-group"><summary>唤醒硬限制</summary><div class="settings-content">
+      <div class="row">
+        <label style="flex:1">最小潜水（秒）</label><input type="number" id="v2SleepMinMs" min="0" style="width:90px">
+        <label style="flex:1">最大潜水（秒，0=不限）</label><input type="number" id="v2SleepMaxMs" min="0" style="width:90px">
+      </div>
+      <div class="row">
+        <label style="flex:1">每分钟最多唤醒</label><input type="number" id="v2MaxWakeMin" min="0" style="width:90px">
+        <label style="flex:1">每小时最多唤醒</label><input type="number" id="v2MaxWakeHour" min="0" style="width:90px">
+      </div>
+      <div class="row">
+        <label style="flex:1">合并窗口（毫秒）</label><input type="number" id="v2BatchWindowMs" min="1000" step="500" style="width:100px">
+        <label style="flex:1">无行动兜底次数</label><input type="number" id="v2NoActionLimit" min="1" style="width:80px">
+        <span class="meta" style="flex:2">回合收尾由程序自动处理，无需模型反复确认。</span><input type="hidden" id="v2MaxWakeConfigReminders">
+      </div>
+      <div class="row">
+        <label style="flex:1">启用沉睡前强制等待</label><input type="checkbox" id="v2PreSleepWaitEnabled" style="width:auto">
+        <label style="flex:1">沉睡前强制等待（分）</label><input type="number" id="v2PreSleepWaitMin" min="0" step="1" style="width:80px">
+        <span class="meta" style="flex:2">AI 设置潜水/下一次唤醒前，默认必须先等够这个观察窗口；0 表示不限制。</span>
+      </div>
+
+      </div></details>
+<details class="settings-group"><summary>等待工具参数（qq_wait_for_messages）</summary><div class="settings-content">
+      <div class="row">
+        <label style="flex:1">默认等待（毫秒）</label><input type="number" id="v2WaitDefaultMs" min="100" style="width:90px">
+        <label style="flex:1">最小等待（毫秒）</label><input type="number" id="v2WaitMinMs" min="100" style="width:90px">
+        <label style="flex:1">最大等待（毫秒）</label><input type="number" id="v2WaitMaxMs" min="100" style="width:90px">
+      </div>
+      <div class="row">
+        <label style="flex:1">默认静默窗口（毫秒）</label><input type="number" id="v2WaitDefaultQuietMs" min="0" style="width:90px">
+        <label style="flex:1">收到新消息后最小静默（毫秒）</label><input type="number" id="v2MinQuietAfterNewMs" min="0" style="width:90px">
+        <span class="meta" style="flex:2">收到新消息后至少再等这么久（默认 10000ms=10 秒），防止抢话。</span>
+      </div>
+      <div class="row">
+        <label style="flex:1">回复检查延迟（秒）</label><input type="number" id="v2AutoReplyCheckSec" min="1" style="width:90px">
+        <span class="meta" style="flex:2">回复检查是 AI 发消息后回来检查是否有人回复的延迟。</span>
+      </div>
+
+      </div></details>
+<details class="settings-group"><summary>主动机会参数（proactive：群安静时 AI 主动冒泡）</summary><div class="settings-content">
+      <div class="row">
+        <label style="flex:1">启用主动机会</label><input type="checkbox" id="v2ProactiveEnabled" style="width:auto">
+        <label style="flex:1">检查间隔（分）</label>
+        <input type="number" id="v2ProactiveIntervalMin" min="1" style="width:80px"> ~
+        <input type="number" id="v2ProactiveIntervalMax" min="1" style="width:80px">
+      </div>
+      <div class="row">
+        <label style="flex:1">安静阈值（分）</label><input type="number" id="v2ProactiveIdleThreshold" min="1" style="width:80px">
+        <label style="flex:1">触发概率</label><input type="number" id="v2ProactiveProbability" step="0.05" min="0" max="1" style="width:80px">
+      </div>
+
+      </div></details>
+<details class="settings-group"><summary>唤醒状态（AI 当前设置的下一次唤醒条件/倒计时）</summary><div class="settings-content">
+      <div class="row">
+        <input type="text" id="v2WakeKey" placeholder="group:123456789" style="flex:1">
+        <button id="v2WakeStatusLoad" class="small">查看唤醒状态</button>
+        <span class="meta" id="v2WakeStatusMsg"></span>
+      </div>
+      <div id="v2WakeStatusOutput" class="tool-log-table">（空）</div>
+
+</div></details>
+  <div class="save-bar"><button id="wakeConfigSave">保存唤醒参数</button><span class="meta" id="wakeConfigMsg" role="status"></span></div>
+</section>
 <section id="section-social-v1" data-page="social-v1" class="card span-all">
       <h2>一代仿真模式（reserved）</h2>
       <div class="meta" id="socialStatus">加载中…</div>
@@ -2019,7 +2122,7 @@ button:active:not(:disabled) {
         <span class="meta" id="v2ActivityStatus">读取中…</span>
       </div>
 
-      <div class="meta" style="margin:14px 0">工具开关、动作参数和调用提示词已集中到 <a href="#reference">MCP 工具管理</a>。</div>
+      <div class="meta" style="margin:14px 0">唤醒配置请到 <a href="#wake">事件与定时唤醒</a>；工具开关、动作参数和调用提示词请到 <a href="#reference">MCP 工具管理</a>。</div>
 <details class="settings-group"><summary>语音库与语音发送（调试）</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">
         语音库目录：<code>qq-bridge/audio/</code>（改 <code>socialV2.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
@@ -2040,54 +2143,8 @@ button:active:not(:disabled) {
       </div>
 
       </div></details>
-<details class="settings-group"><summary>唤醒推荐值（仅参考，AI 可不遵守）</summary><div class="settings-content">
-      <div class="row">
-        <label style="flex:1">默认模式</label>
-        <select id="v2WakeDefaultMode" style="width:120px"><option value="diving">潜水</option><option value="active">活跃</option></select>
-        <label style="flex:1">默认下一次唤醒：无限期（永久）</label><input type="checkbox" id="v2RecDefaultInfinite" style="width:auto">
-      </div>
-      <div class="row">
-        <label style="flex:1">推荐潜水时长（分）</label>
-        <input type="number" id="v2RecSleepMin" min="1" style="width:80px"> ~
-        <input type="number" id="v2RecSleepMax" min="1" style="width:80px">
-      </div>
-      <div class="row">
-        <label style="flex:1">推荐普通消息概率</label><input type="number" id="v2RecProb" step="0.05" min="0" max="1" style="width:80px">
-      </div>
-      <div class="row">
-        <label style="flex:1">推荐关键词（逗号分隔）</label><input type="text" id="v2RecKeywords" placeholder="小鲸鱼, DeepSeek" style="flex:1">
-      </div>
-      <div class="row">
-        <label style="flex:1">推荐 @ 唤醒</label><input type="checkbox" id="v2RecAt" style="width:auto">
-        <label style="flex:1">推荐名字唤醒</label><input type="checkbox" id="v2RecName" style="width:auto">
-        <label style="flex:1">推荐提问唤醒</label><input type="checkbox" id="v2RecQuestion" style="width:auto">
-        <label style="flex:1">推荐拍一拍唤醒</label><input type="checkbox" id="v2RecPoke" style="width:auto">
-      </div>
-      <label>唤醒推荐提示（给 AI 看的文字）</label>
-      <textarea id="v2WakeHint" rows="2" placeholder="例如：如果你在潜水，推荐 5~120 分钟、普通消息概率 0.05…"></textarea>
 
-      </div></details>
-<details class="settings-group"><summary>唤醒硬限制</summary><div class="settings-content">
-      <div class="row">
-        <label style="flex:1">最小潜水（秒）</label><input type="number" id="v2SleepMinMs" min="0" style="width:90px">
-        <label style="flex:1">最大潜水（秒，0=不限）</label><input type="number" id="v2SleepMaxMs" min="0" style="width:90px">
-      </div>
-      <div class="row">
-        <label style="flex:1">每分钟最多唤醒</label><input type="number" id="v2MaxWakeMin" min="0" style="width:90px">
-        <label style="flex:1">每小时最多唤醒</label><input type="number" id="v2MaxWakeHour" min="0" style="width:90px">
-      </div>
-      <div class="row">
-        <label style="flex:1">合并窗口（毫秒）</label><input type="number" id="v2BatchWindowMs" min="1000" step="500" style="width:100px">
-        <label style="flex:1">无行动兜底次数</label><input type="number" id="v2NoActionLimit" min="1" style="width:80px">
-        <span class="meta" style="flex:2">回合收尾由程序自动处理，无需模型反复确认。</span><input type="hidden" id="v2MaxWakeConfigReminders">
-      </div>
-      <div class="row">
-        <label style="flex:1">启用沉睡前强制等待</label><input type="checkbox" id="v2PreSleepWaitEnabled" style="width:auto">
-        <label style="flex:1">沉睡前强制等待（分）</label><input type="number" id="v2PreSleepWaitMin" min="0" step="1" style="width:80px">
-        <span class="meta" style="flex:2">AI 设置潜水/下一次唤醒前，默认必须先等够这个观察窗口；0 表示不限制。</span>
-      </div>
 
-      </div></details>
 <details class="settings-group"><summary>发送限制</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">二代不再按空格自动拆条；AI 要分多条必须显式传数组或用 qq_send_burst。</div>
       <div class="row">
@@ -2121,36 +2178,8 @@ button:active:not(:disabled) {
       <textarea id="v2SendHint" rows="2" placeholder="例如：普通闲聊建议一次 1~3 条，条间 1~3 秒…"></textarea>
 
       </div></details>
-<details class="settings-group"><summary>等待工具参数（qq_wait_for_messages）</summary><div class="settings-content">
-      <div class="row">
-        <label style="flex:1">默认等待（毫秒）</label><input type="number" id="v2WaitDefaultMs" min="100" style="width:90px">
-        <label style="flex:1">最小等待（毫秒）</label><input type="number" id="v2WaitMinMs" min="100" style="width:90px">
-        <label style="flex:1">最大等待（毫秒）</label><input type="number" id="v2WaitMaxMs" min="100" style="width:90px">
-      </div>
-      <div class="row">
-        <label style="flex:1">默认静默窗口（毫秒）</label><input type="number" id="v2WaitDefaultQuietMs" min="0" style="width:90px">
-        <label style="flex:1">收到新消息后最小静默（毫秒）</label><input type="number" id="v2MinQuietAfterNewMs" min="0" style="width:90px">
-        <span class="meta" style="flex:2">收到新消息后至少再等这么久（默认 10000ms=10 秒），防止抢话。</span>
-      </div>
-      <div class="row">
-        <label style="flex:1">回复检查延迟（秒）</label><input type="number" id="v2AutoReplyCheckSec" min="1" style="width:90px">
-        <span class="meta" style="flex:2">回复检查是 AI 发消息后回来检查是否有人回复的延迟。</span>
-      </div>
 
-      </div></details>
-<details class="settings-group"><summary>主动机会参数（proactive：群安静时 AI 主动冒泡）</summary><div class="settings-content">
-      <div class="row">
-        <label style="flex:1">启用主动机会</label><input type="checkbox" id="v2ProactiveEnabled" style="width:auto">
-        <label style="flex:1">检查间隔（分）</label>
-        <input type="number" id="v2ProactiveIntervalMin" min="1" style="width:80px"> ~
-        <input type="number" id="v2ProactiveIntervalMax" min="1" style="width:80px">
-      </div>
-      <div class="row">
-        <label style="flex:1">安静阈值（分）</label><input type="number" id="v2ProactiveIdleThreshold" min="1" style="width:80px">
-        <label style="flex:1">触发概率</label><input type="number" id="v2ProactiveProbability" step="0.05" min="0" max="1" style="width:80px">
-      </div>
 
-      </div></details>
 <details class="settings-group"><summary>表情包参数（sticker：QQ 收藏表情体系）</summary><div class="settings-content">
       <div class="row">
         <label style="flex:1">启用表情包体系</label><input type="checkbox" id="v2StickerEnabled" style="width:auto">
@@ -2222,15 +2251,7 @@ button:active:not(:disabled) {
       <div id="v2MemoryOutput" class="tool-log-table">（空）</div>
 
       </div></details>
-<details class="settings-group"><summary>唤醒状态（AI 当前设置的下一次唤醒条件/倒计时）</summary><div class="settings-content">
-      <div class="row">
-        <input type="text" id="v2WakeKey" placeholder="group:123456789" style="flex:1">
-        <button id="v2WakeStatusLoad" class="small">查看唤醒状态</button>
-        <span class="meta" id="v2WakeStatusMsg"></span>
-      </div>
-      <div id="v2WakeStatusOutput" class="tool-log-table">（空）</div>
 
-</div></details>
 <details class="settings-group"><summary>白名单会话快速选择</summary><div class="settings-content">
       <div class="row">
         <select id="v2SessionSelect" style="flex:1"><option value="">选择白名单群/私聊…</option></select>
@@ -2958,9 +2979,9 @@ function setSimMsg(text, ok) {
 
 function setSimEditing(editing) {
   const area = document.getElementById('simPromptText');
-  area.readOnly = !editing;
+  area.readOnly = false;
   area.classList.toggle('editing', editing);
-  document.getElementById('simPromptEdit').disabled = editing;
+
   document.getElementById('simPromptSave').disabled = !editing;
   document.getElementById('simPromptCancel').disabled = !editing;
 }
@@ -2983,11 +3004,11 @@ async function refreshSimPrompt() {
     setSimMsg('');
     const status = r.status || {};
     document.getElementById('simPromptStatus').textContent =
-      `${status.label || simPromptPreset} · ${r.chars} 字符${status.installed ? ' · 已同步到 DSH' : ' · 尚未同步到 DSH'}`;
+      `${status.label || simPromptPreset} · ${r.chars} 字符${(status.bundleReady ?? status.installed) ? ' · 预设已生成' : ' · 预设待生成'}`;
     document.getElementById('simPromptWarnings').textContent = (r.warnings || []).length
       ? '⚠️ ' + r.warnings.join('；') : '';
     document.getElementById('simPromptRestart').textContent =
-      '改动写入该代预设的源文件并同步到 DSH 的 preset 目录；preset 由 DSH 在会话创建时装配，因此新会话会自动用新版，正在进行的 QQ 会话需重置该会话或重启 DSH。';
+      '保存会备份原文，并同步生成 DSH 实际读取的内联预设。仿真层修改后需重启 DSH；人格层和唤醒任务文案保存即影响下一轮。';
   } catch (error) {
     setSimMsg('读取失败：' + (error?.message ?? error), false);
   }
@@ -3141,9 +3162,9 @@ document.getElementById('roleFormReset').addEventListener('click', () => resetRo
 document.getElementById('newRoleContent').addEventListener('input', updateRoleEditorWarnings);
 
 // ── 仿真提示词 ──────────────────────────────────────────────────────────────
-document.getElementById('simPromptEdit').addEventListener('click', () => {
-  setSimEditing(true);
-  setSimMsg('编辑中：改完点「保存并同步到 DSH」。保存会先备份，并做 YAML 与安全不变量校验。');
+document.getElementById('simPromptText').addEventListener('input', () => {
+  const dirty = document.getElementById('simPromptText').value !== simPromptOriginal;
+  setSimEditing(dirty); setSimMsg(dirty ? '尚未保存；保存后重启 DSH 生效。' : '');
 });
 document.getElementById('simPromptCancel').addEventListener('click', () => {
   document.getElementById('simPromptText').value = simPromptOriginal;
@@ -3153,7 +3174,6 @@ document.getElementById('simPromptCancel').addEventListener('click', () => {
 document.getElementById('simPromptPreset').addEventListener('change', () => { refreshSimPrompt(); });
 document.getElementById('simPromptSave').addEventListener('click', async () => {
   const content = document.getElementById('simPromptText').value;
-  if (!confirm('保存会改写该代预设的源文件并同步到 DSH 的 preset 目录（新会话生效，进行中的会话需重置或重启 DSH）。确定继续？')) return;
   setSimMsg('保存中…');
   const r = await api('/api/preset/sim-prompt', 'POST', { preset: simPromptPreset, content });
   if (!r.ok) { setSimMsg('❌ ' + (r.error || '保存失败'), false); return; }
@@ -3394,7 +3414,7 @@ async function loadV2Config() {
   } catch {}
 }
 
-async function saveV2Config() {
+async function saveV2Config({ scope = 'general' } = {}) {
   const tools = {};
   document.querySelectorAll('[data-v2-tool]').forEach(el => { tools[el.dataset.v2Tool] = el.checked; });
   const body = {
@@ -3482,12 +3502,15 @@ async function saveV2Config() {
       notifyOwnerOnError: document.getElementById('v2FeedbackNotifyOwner').checked
     }
   };
-  const r = await api('/api/socialV2/config', 'POST', body);
-  const msg = document.getElementById('v2ConfigMsg');
+  const wakeFields = ['wake', 'wait', 'proactive', 'autoReplyCheckMs'];
+  const patch = Object.fromEntries(Object.entries(body).filter(([key]) => scope === 'wake' ? wakeFields.includes(key) : !wakeFields.includes(key)));
+  const r = await api('/api/socialV2/config', 'POST', patch);
+  const msg = document.getElementById(scope === 'wake' ? 'wakeConfigMsg' : 'v2ConfigMsg');
   msg.textContent = r.ok ? '✅ 已保存' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) loadV2Config();
 }
+
+document.getElementById('wakeConfigSave').addEventListener('click', () => saveV2Config({ scope: 'wake' }));
 
 async function viewV2State() {
   const key = document.getElementById('v2StateKey').value.trim();
@@ -4769,8 +4792,10 @@ document.getElementById('consoleTokenRandom').addEventListener('click', () => ch
 const consolePages = {
   overview: ['运行总览', '让每一次连接，都自然发生。', '掌握桥接状态，轻松管理你的 QQ 智能伙伴。'],
   sessions: ['会话与审批', '让每一段对话，都有迹可循。', '查看 QQ 与 DSH 的会话映射，以及等待你回复的审批和提问。'],
-  persona: ['人格与角色', '给你的伙伴，一点独特个性。', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
-  'social-v2': ['二代仿真', '自主参与，恰到好处。', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
+  simulation: ['仿真提示词', '管理行为与协议。', '编辑当前使用的仿真预设，保存后重启 DSH 生效。'],
+  wake: ['事件与定时唤醒', '决定何时唤醒，以及醒来做什么。', '分别管理现有消息唤醒、主动机会与自定义事件和定时任务。'],
+  persona: ['人格提示词', '给你的伙伴，一点独特个性。', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
+  'social-v2': ['二代仿真', '自主参与，恰到好处。', '管理运行模式、发送限制与上下文。唤醒和提示词在各自页面配置。'],
   'social-v1': ['一代仿真', '为自然对话，设定合适的节奏。', '调整参与概率、活跃周期和分条发送；所有配置项完整保留。'],
   slang: ['黑话词库', '读懂群聊里的，言外之意。', '从候选到确认，让 AI 逐渐熟悉大家的表达习惯。'],
   persons: ['人物印象', '同一个人，换个群也认得。', '按 QQ 号跨群保存长期印象与聊过的话题：AI 记的直接生效，自动提取的由你确认后生效。'],
@@ -5452,6 +5477,12 @@ setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); 
   script.src = '/console-tools.js?token=' + token;
   script.onerror = () => { document.getElementById('tsGroups').textContent = '工具管理模块加载失败，请刷新页面。'; };
   document.body.append(script);
+  const wakeStyle = document.createElement('link');
+  wakeStyle.rel = 'stylesheet'; wakeStyle.href = '/console-wake.css?token=' + token; document.head.append(wakeStyle);
+  const wakeScript = document.createElement('script');
+  wakeScript.src = '/console-wake.js?token=' + token;
+  wakeScript.onerror = () => { document.getElementById('wakeManager').textContent = '唤醒管理模块加载失败。'; };
+  document.body.append(wakeScript);
 })();
 </script>
 </body>
