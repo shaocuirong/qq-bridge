@@ -47,6 +47,7 @@
     try {
       await request('/api/socialV2/config', 'POST', patch);
       await load(); report(success);
+      document.dispatchEvent(new Event('tool-prompts-updated'));
     } catch (error) { report(`保存失败：${error.message}；原配置未改变。`, true); }
     finally { state.busy = false; render(); }
   }
@@ -143,6 +144,7 @@
         try {
           const result = await request('/api/socialV2/tool-prompts', 'POST', { group: g.id, text: draft.text, enabled: draft.enabled });
           promptDrafts.delete(g.id); state.groups = result.groups; report('提示词已保存，下次生成提示词时生效。');
+          document.dispatchEvent(new Event('tool-prompts-updated'));
         } catch (error) { report(`保存失败：${error.message}`, true); }
         finally { state.busy = false; render(); }
       }), button('恢复默认到编辑框', () => { draft.text = g.defaultText; promptDrafts.set(g.id, draft); render(); }), count);
@@ -218,5 +220,6 @@
   }
   search.oninput = () => { state.query = search.value.trim().toLowerCase(); state.selected = null; render(); };
   window.addEventListener('beforeunload', event => { if (promptDrafts.size) { event.preventDefault(); event.returnValue = ''; } });
+  document.addEventListener('tool-prompts-updated', load);
   load();
 })();

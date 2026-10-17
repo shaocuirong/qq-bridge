@@ -8,15 +8,16 @@ import assert from 'node:assert/strict';
 const MOD = new URL('../src/tool-prompts.js', import.meta.url);
 const { GROUPS, defaultConfig, toolForAction } = await import(new URL('../src/qq-tool-groups.js', import.meta.url));
 
-let pass = 0;
+let pass = 0, total = 0;
 const ok = (name, fn) => {
+  total++;
   try { fn(); pass++; console.log(`  ✓ ${name}`); }
   catch (error) { console.log(`  ✗ ${name}\n    ${error?.message ?? error}`); process.exitCode = 1; }
 };
 
 const {
   MAX_GROUP_CHARS, MAX_TOTAL_CHARS, promptsFilePath,
-  ensureDefaults, readPrompts, writePrompt, composePromptBlock, promptsView,
+  ensureDefaults, readPrompts, writePrompt, writePromptSelection, composePromptBlock, promptsView,
 } = await import(MOD);
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'qq-prompts-'));
@@ -68,6 +69,21 @@ ok('enabled:false 的组不注入', () => {
   assert.ok(!block.includes('不该出现'));
 });
 
+ok('批量选择只改注入开关，保留正文；空选择、重新启用及非法输入均正确', () => {
+  const root = tmp();
+  ensureDefaults(root); writePrompt(root, 'memory', { text: '保留自定义记忆协议' });
+  writePromptSelection(root, ['memory']);
+  const selected = readPrompts(root);
+  assert.equal(selected.memory.text, '保留自定义记忆协议');
+  assert.equal(selected.wake.enabled, false);
+  assert.equal(composePromptBlock(selected, ['memory', 'wake']), '【记忆与人物】\n保留自定义记忆协议');
+  const before = fs.readFileSync(promptsFilePath(root), 'utf8');
+  for (const bad of [null, 'memory', ['unknown'], [null]]) assert.throws(() => writePromptSelection(root, bad));
+  assert.equal(fs.readFileSync(promptsFilePath(root), 'utf8'), before);
+  writePromptSelection(root, []); assert.equal(composePromptBlock(readPrompts(root), ['memory', 'wake']), '');
+  writePromptSelection(root, ['memory']); assert.equal(readPrompts(root).memory.text, '保留自定义记忆协议');
+});
+
 ok('总长超 MAX_TOTAL_CHARS 时截断并标记（Review Focus 4）', () => {
   const prompts = {};
   for (const g of GROUPS) prompts[g.id] = { text: 'y'.repeat(MAX_GROUP_CHARS), enabled: true, updatedAt: 1 };
@@ -113,5 +129,5 @@ ok('toolForAction：独立工具优先，其余落到通道工具', () => {
 });
 
 const NL = String.fromCharCode(10);
-console.log(pass === 9 ? NL + '✓ 9/9 passed' : NL + '✗ ' + pass + '/9 passed');
-if (pass !== 9) process.exitCode = 1;
+console.log(NL + (pass === total ? '✓ ' : '✗ ') + pass + '/' + total + ' passed');
+if (pass !== total) process.exitCode = 1;

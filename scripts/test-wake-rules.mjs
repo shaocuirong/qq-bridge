@@ -63,7 +63,7 @@ test('legacy tool-linked rules migrate without retaining a tool selector or tool
 }));
 
 test('unknown scopes, triggers, schedules and prompt shapes are rejected atomically', () => fixture(root => {
-  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }]) {
+  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }, { snapshotLimit: -1 }, { snapshotLimit: 101 }, { snapshotLimit: 1.5 }]) {
     assert.throws(() => normalizeWakeRules([{ ...rule, ...patch }]));
   }
   const sent = [];
@@ -76,6 +76,30 @@ test('unknown scopes, triggers, schedules and prompt shapes are rejected atomica
   assert.equal(safeWakeEvent({ post_type: 'request', flag: 'private', accessToken: 'private' }).flag, undefined);
 }));
 
+test('event snapshots use the requested latest count, include cooldown arrivals and isolate targets/types', () => fixture(root => {
+  let clock = 1_000_000;
+  const runtime = createWakeRuleRuntime({ root, now: () => clock, isAllowed: () => true, isActive: () => true,
+    redact: text => text.replaceAll('known-secret', '[redacted]'), dispatch() {} });
+  runtime.replace([{ ...rule, events: ['notice:group_increase'], snapshotLimit: 2 }]);
+  for (let index = 1; index <= 4; index++) {
+    runtime.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456, user_id: index, comment: 'known-secret', flag: 'never-store' });
+    clock += 1;
+  }
+  runtime.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 999, user_id: 900 });
+  runtime.event({ post_type: 'message', group_id: 456, user_id: 901, raw_message: 'other event kind' });
+  const snapshot = runtime.snapshot(rule.id, 'group:456');
+  assert.deepEqual(snapshot.events.map(e => e.data.user_id), [3, 4]);
+  assert.equal(snapshot.availableCount, 4); assert.equal(snapshot.requestedLimit, 2); assert.equal(snapshot.partial, true);
+  assert.equal(JSON.stringify(snapshot).includes('known-secret'), false); assert.equal(JSON.stringify(snapshot).includes('never-store'), false);
+  assert.equal(runtime.snapshot(rule.id, 'group:999'), null);
+  runtime.replace([{ ...rule, snapshotLimit: 0 }]); assert.equal(runtime.snapshot(rule.id, 'group:456'), null);
+  runtime.replace([{ ...rule, events: [], snapshotLimit: 100 }]);
+  for (let index = 0; index < 50; index++) runtime.event({ post_type: 'message', group_id: 456, raw_message: '大'.repeat(800), user_id: index + 10 });
+  const large = runtime.snapshot(rule.id, 'group:456');
+  assert.ok(JSON.stringify(large).length <= 12000); assert.equal(large.partial, true);
+  assert.equal(large.events.at(-1).data.user_id, 59);
+}));
+
 test('an event wake queued while busy survives without unread messages, and disabled rules do not revive', async () => {
   const h = await bridgeHarness({ config: { socialV2: { wake: { batchWindowMs: 60000 } } } });
   try {
@@ -83,8 +107,11 @@ test('an event wake queued while busy survives without unread messages, and disa
     const key = 'group:456', st = h.getSocialV2State(key);
     const sid = await h.ensureSession(key);
     h.collectors.set(sid, { stub: true }); h.v2TurnStartAt.set(sid, Date.now());
-    h.wakeRules.replace([{ ...rule, intervalMinutes: 0, events: ['notice:group_increase'] }]);
-    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.wakeRules.replace([{ ...rule, intervalMinutes: 0, events: ['notice:group_increase'], snapshotLimit: 2 }]);
+    for (const user_id of [111, 222, 333]) h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456, user_id });
+    const prompt = h.buildWakePromptV2(key, 'wakeRule');
+    const snapshotJson = prompt.match(/【事件快照，仅作上下文】([^\n]+)/)?.[1];
+    assert.ok(snapshotJson); assert.deepEqual(JSON.parse(snapshotJson).events.map(e => e.data.user_id), [222, 333]);
     assert.equal(st.unread.length, 0); assert.equal(st.pendingWakeReasons[0].reason, 'wakeRule');
     h.collectors.delete(sid); h.v2TurnStartAt.delete(sid);
     h.sweepPendingWakeReasonsV2(); assert.ok(st.pendingWakeTimer, '没有未读消息也必须重排任务');

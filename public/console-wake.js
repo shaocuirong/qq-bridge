@@ -77,7 +77,7 @@
   }
   function newRule(schedule) {
     state.draft = { id: crypto.randomUUID(), name: schedule ? '新的定时任务' : '新的事件唤醒', enabled: false, keys: [],
-      events: schedule ? [] : ['message'], intervalMinutes: schedule ? 30 : 0, cooldownSeconds: 60, reference: null,
+      events: schedule ? [] : ['message'], intervalMinutes: schedule ? 30 : 0, cooldownSeconds: 60, snapshotLimit: 10, reference: null,
       prompt: state.references[schedule ? 'proactive' : 'message'] || '结合 {{event}} 与会话 {{key}} 判断是否需要行动。' };
     render(); document.getElementById('wakeRuleEditor').scrollIntoView({ block: 'start' });
   }
@@ -95,6 +95,7 @@
       const triggers = rule.events.map(id => state.eventTypes.find(e => e.id === id)?.label || id);
       if (rule.intervalMinutes) triggers.push(`每 ${rule.intervalMinutes} 分钟`);
       info.append(el('p', triggers.join(' · '), 'meta'), el('p', rule.keys.join('、'), 'meta'));
+      info.append(el('p', `事件快照：${rule.snapshotLimit ?? 1} 条`, 'meta'));
       const next = state.schedules.find(s => s.id === rule.id)?.nextRunAt;
       if (next) info.append(el('p', '下次定时检查：' + new Date(next).toLocaleString('zh-CN', { hour12: false }), 'meta'));
       const actions = el('div', undefined, 'wm-rule-actions');
@@ -133,6 +134,9 @@
     const cooldown = el('input'); cooldown.id = 'wakeRuleCooldown'; cooldown.type = 'number'; cooldown.min = '10'; cooldown.max = '86400'; cooldown.value = draft.cooldownSeconds;
     cooldown.oninput = () => { draft.cooldownSeconds = Number(cooldown.value); };
     timing.append(field('定时间隔（分钟，0 表示关闭）', interval), field('同一会话触发冷却（秒）', cooldown)); editor.append(timing);
+    const snapshotLimit = el('input'); snapshotLimit.id = 'wakeRuleSnapshotLimit'; snapshotLimit.type = 'number'; snapshotLimit.min = '0'; snapshotLimit.max = '100'; snapshotLimit.step = '1'; snapshotLimit.value = draft.snapshotLimit ?? 1;
+    snapshotLimit.oninput = () => { draft.snapshotLimit = Number(snapshotLimit.value); };
+    editor.append(field('事件快照条数（0 不附加历史，最多 100 条）', snapshotLimit), el('p', '唤醒时拉取本会话最近的匹配事件，按时间顺序提供；纯定时任务可读取本会话各类近期事件。记录从桥接启动后开始保留，较大快照还受字数预算限制。', 'meta'));
     const reference = el('select'); reference.id = 'wakeRuleReference';
     for (const [id, label] of [['', '不额外注入参考'], ['message', '消息回复参考（当前文案）'], ['proactive', '主动机会参考（当前文案）'], ['event', '上游事件处理参考']]) {
       const option = el('option', label); option.value = id; option.selected = id === (draft.reference || ''); reference.append(option);

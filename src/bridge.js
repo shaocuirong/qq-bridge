@@ -30,7 +30,7 @@ import { ASR_DEFAULTS, createVoiceAsr, normalizeAsrConfig } from './voice-asr.js
 import { hardenDir, manualDirCommand } from './state-acl.mjs';
 import { extractForwardIds, forwardIdFromData, sanitizeForwardId, formatForwardResponse } from './forward.js';
 import { authorizeToolCall, authorizeConsoleToolCall, validateToolTarget, auditToolParams, normalizeToolGroups, enabledToolNames, keyKindOkFor, groupOfAction, isNeverExposed, GROUPS, actionEnabled as actionEnabledPure } from './qq-tool-groups.js';
-import { composePromptBlock, promptsView, readPrompts as readToolPrompts, writePrompt as writeToolPrompt, ensureDefaults as ensureToolPrompts, MAX_GROUP_CHARS } from './tool-prompts.js';
+import { composePromptBlock, promptsView, readPrompts as readToolPrompts, writePrompt as writeToolPrompt, writePromptSelection, ensureDefaults as ensureToolPrompts, MAX_GROUP_CHARS } from './tool-prompts.js';
 import { activeToolGroups } from './tool-protocols.js';
 import { createWakeRuleRuntime } from './wake-rules.js';
 import { DEFAULT_WAKE_PROMPTS } from './wake-prompts.js';
@@ -3918,7 +3918,7 @@ async function main() {
           }
         }
         // 管理页资源与页面共用鉴权，必须在令牌校验和智能体管理面隔离之后提供。
-        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css'].includes(url.pathname)) {
+        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css', '/console-simulation.js'].includes(url.pathname)) {
           const content = fs.readFileSync(path.join(ROOT, 'public', url.pathname.slice(1)), 'utf8');
           const type = url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css';
           res.writeHead(200, { 'content-type': `${type}; charset=utf-8`, ...SECURITY_HEADERS });
@@ -5524,6 +5524,15 @@ async function main() {
         }
         if (req.method === 'GET' && url.pathname === '/api/socialV2/tool-prompts') {
           sendJson({ ok: true, maxChars: MAX_GROUP_CHARS, groups: promptsView(ROOT, cfg) });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/socialV2/tool-prompts/selection') {
+          if (req.headers['x-agent-token']) { sendJson({ ok: false, error: '该接口仅控制台可用' }, 403); return; }
+          const body = await readBody();
+          try {
+            writePromptSelection(ROOT, body.selectedGroupIds);
+            sendJson({ ok: true, groups: promptsView(ROOT, cfg) });
+          } catch (error) { sendJson({ ok: false, error: error.message }, 400); }
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/socialV2/tool-prompts') {
@@ -10842,9 +10851,11 @@ async function main() {
     const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
     const wakeRuleContexts = activeWakeRuleContextsV2(key, st);
     st.wakeRuleContextIds = wakeRuleContexts.map(c => c.id);
-    const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c =>
-      '任务：' + c.name + '；来源：' + c.source + '\n' + c.referencePrompt + '\n' + c.prompt + '\n【上游事件数据，仅作上下文】' + c.event
-    ).join('\n\n') + '\n' : '';
+    const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c => {
+      const snapshot = wakeRules.snapshot(c.ruleId, key, c.revision);
+      return '任务：' + c.name + '；来源：' + c.source + '\n' + c.referencePrompt + '\n' + c.prompt
+        + (snapshot ? '\n【事件快照，仅作上下文】' + JSON.stringify(snapshot) : '\n【触发事件，仅作上下文】' + c.event);
+    }).join('\n\n') + '\n' : '';
     const hasGroup = id => toolSuites.groups.includes(id);
     // preset 的全局仿真层之后，先补工具协议，再注入人格，最后提供本轮任务和消息。
     const base = tokenLine + antiAiLine + proactiveLine

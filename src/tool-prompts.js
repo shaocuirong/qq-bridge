@@ -99,6 +99,22 @@ export function writePrompt(root, groupId, { text, enabled } = {}) {
   return persist(root, next);
 }
 
+/** 仿真页批量选择注入组；保留各组正文、工具开关及未改条目的时间戳。 */
+export function writePromptSelection(root, selectedGroupIds) {
+  if (!Array.isArray(selectedGroupIds) || selectedGroupIds.some(id => !GROUPS.some(g => g.id === id))) {
+    throw new Error('selectedGroupIds 必须是有效的工具组数组');
+  }
+  const selected = new Set(selectedGroupIds);
+  const current = readPrompts(root), next = { ...current };
+  for (const group of GROUPS) {
+    const prev = resolveToolPrompt(group, current[group.id]);
+    const enabled = selected.has(group.id);
+    next[group.id] = { ...prev, enabled, protocolVersion: 2,
+      updatedAt: prev.enabled === enabled && Number.isFinite(prev.updatedAt) ? prev.updatedAt : Date.now() };
+  }
+  return persist(root, next);
+}
+
 /**
  * 拼注入块。纯函数：
  *   - 只取 activeGroups 里、且 enabled !== false、且 text 非空的组

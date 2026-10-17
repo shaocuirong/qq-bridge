@@ -538,10 +538,12 @@ try {
     await page.getByRole('button', { name: '新增定时任务', exact: true }).click();
     await page.locator('#wakeRuleEditor label.wm-check').filter({ hasText: '群聊 123456789' }).locator('input').setChecked(true);
     await page.locator('#wakeRuleInterval').fill('5');
+    await page.locator('#wakeRuleSnapshotLimit').fill('7');
     const body = await clickWrite('#wakeRuleEditor button:has-text("保存规则")', '/api/wake-rules');
     assert.deepEqual(body.rules[0].keys, ['group:123456789']);
     assert.deepEqual(body.rules[0].events, []);
     assert.equal(body.rules[0].intervalMinutes, 5);
+    assert.equal(body.rules[0].snapshotLimit, 7);
     assert.equal(body.rules[0].enabled, false);
     assert.equal(Object.hasOwn(body.rules[0], 'tools'), false);
     await page.waitForFunction(() => !document.getElementById('wakeRuleEditor'));
@@ -550,6 +552,18 @@ try {
     await page.locator('#wakeBuiltinPrompt').fill('结合 {{key}} 判断是否回复。');
     assert.deepEqual(await clickWrite('#wakeBuiltin button:has-text("保存场景提示词")', '/api/wake-rules'), { prompts: { message: '结合 {{key}} 判断是否回复。' } });
     assert.equal(await page.locator('[data-wake-rule]').count(), 1);
+  });
+
+  if (!original) await test('仿真页选择工具提示词，与工具开关和全局正文分别保存', async () => {
+    await navigate('simulation');
+    await page.waitForFunction(() => document.querySelectorAll('[data-prompt-group]').length === 19);
+    const originalText = await page.locator('#simPromptText').inputValue();
+    await page.locator('#simToolPrompts').getByRole('button', { name: '清空选择', exact: true }).click();
+    await page.locator('[data-prompt-group="memory"]').setChecked(true);
+    assert.deepEqual(await clickWrite('#simToolPromptsSave', '/api/socialV2/tool-prompts/selection'), { selectedGroupIds: ['memory'] });
+    await page.waitForFunction(() => document.getElementById('simToolPromptsStatus').textContent.includes('已保存'));
+    assert.equal(await page.locator('[data-prompt-group]:checked').count(), 1);
+    assert.equal(await page.locator('#simPromptText').inputValue(), originalText);
   });
 
   if (!original) await test('人格注入上限可调，且随模式筛选后统计', async () => {

@@ -1884,7 +1884,7 @@ button:active:not(:disabled) {
         <p>每条消息发给 AI 时，按 <code>仿真提示词 → 人格提示词 → 本轮消息</code> 的顺序拼装。人格层保存即生效；仿真层需重启 DSH。</p>
       </div>
 
-      <p class="meta">编辑框读取当前预设已有的完整内容。工具私有协议仍在 <a href="#reference">MCP 工具管理</a> 按启用的组注入；本页管理全局行为与协议。</p>
+      <p class="meta">编辑框读取当前预设已有的完整内容。本页下方可选择注入哪些工具组提示词，正文仍在 <a href="#reference">MCP 工具管理</a> 编辑。</p>
       <h3 class="layer-heading">仿真提示词（预设内置）<span class="meta" id="simPromptStatus">加载中…</span></h3>
       <div class="row" style="margin-bottom:8px">
         <label style="flex:0 0 auto">仿真代次</label>
@@ -1903,6 +1903,7 @@ button:active:not(:disabled) {
         <span class="meta" id="simPromptMsg"></span>
       </div>
       <div class="meta" id="simPromptRestart"></div>
+      <div id="simToolPrompts" class="sim-tool-prompts">正在读取工具提示词…</div>
     </section>
 <section id="section-wake" data-page="wake" class="card span-all">
   <h2>事件与定时唤醒</h2>
@@ -5483,6 +5484,10 @@ setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); 
   wakeScript.src = '/console-wake.js?token=' + token;
   wakeScript.onerror = () => { document.getElementById('wakeManager').textContent = '唤醒管理模块加载失败。'; };
   document.body.append(wakeScript);
+  const simulationScript = document.createElement('script');
+  simulationScript.src = '/console-simulation.js?token=' + token;
+  simulationScript.onerror = () => { document.getElementById('simToolPrompts').textContent = '工具提示词选择模块加载失败。'; };
+  document.body.append(simulationScript);
 })();
 </script>
 </body>

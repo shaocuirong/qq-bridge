@@ -38,14 +38,16 @@ export function normalizeWakeRules(input) {
     if (events.some(e => !EVENT_TYPES.has(e))) throw new Error('事件类型无效');
     const intervalMinutes = Number(raw.intervalMinutes ?? 0);
     const cooldownSeconds = Number(raw.cooldownSeconds ?? 60);
+    const snapshotLimit = Number(raw.snapshotLimit ?? 1);
     if (!Number.isFinite(intervalMinutes) || intervalMinutes < 0 || intervalMinutes > 43200 || (intervalMinutes > 0 && intervalMinutes < 1)) throw new Error('定时间隔须为 1～43200 分钟，0 表示关闭');
     if (!events.length && !intervalMinutes) throw new Error('至少选择一种事件或开启定时任务');
     if (!Number.isFinite(cooldownSeconds) || cooldownSeconds < 10 || cooldownSeconds > 86400) throw new Error('冷却时间须为 10～86400 秒');
+    if (!Number.isInteger(snapshotLimit) || snapshotLimit < 0 || snapshotLimit > 100) throw new Error('事件快照条数须为 0～100 的整数');
     // 兼容旧任务文本，但 tools 不再进入配置、调度判断或模型上下文。
     const prompt = String(raw.prompt ?? '').replaceAll('{{tools}}', '当前已启用的工具').trim();
     if (!prompt || prompt.length > 8000) throw new Error('唤醒提示词不能为空，最多 8000 字符');
     return { id, name: String(raw.name || '自定义唤醒').slice(0, 80), enabled: raw.enabled === true,
-      keys, events, intervalMinutes, cooldownSeconds, prompt,
+      keys, events, intervalMinutes, cooldownSeconds, snapshotLimit, prompt,
       reference: Object.hasOwn(WAKE_PROMPT_REFERENCES, raw.reference) ? raw.reference : null };
   });
 }
@@ -90,6 +92,8 @@ export function createWakeRuleRuntime({ root, isAllowed, isActive, dispatch, red
   const legacy = path.join(root, 'state', 'tool-automations.json');
   let rules = [], prompts = {};
   const nextDue = new Map(), lastEvent = new Map();
+  // 保存经准入和脱敏的近期事件；限总数，快照按目标和规则事件类型筛选。
+  const history = [];
   const source = fs.existsSync(file) ? file : legacy;
   try {
     const saved = JSON.parse(fs.readFileSync(source, 'utf8'));
@@ -122,6 +126,28 @@ export function createWakeRuleRuntime({ root, isAllowed, isActive, dispatch, red
   });
   return {
     view, prompt,
+    snapshot(id, key, expectedRevision) {
+      if (!isActive() || !isAllowed(key)) return null;
+      const rule = rules.find(r => r.id === id && r.enabled && r.keys.includes(key) && (!expectedRevision || revision(r) === expectedRevision));
+      if (!rule?.snapshotLimit) return null;
+      const matching = history.filter(item => {
+        if (item.key !== key && item.key !== null) return false;
+        // 纯定时任务读取本会话事件；全局网关事件须被规则明确选中。
+        if (!rule.events.length) return item.key === key;
+        return rule.events.includes(item.kind) || rule.events.includes(item.kind.split(':')[0] + ':*');
+      });
+      const snapshot = { requestedLimit: rule.snapshotLimit, availableCount: matching.length, includedCount: 0, partial: false, events: [] };
+      // 优先最新记录，按时间顺序提供；字数预算不截断一条事件的 JSON。
+      for (const item of matching.slice(-rule.snapshotLimit).reverse()) {
+        snapshot.events.unshift({ kind: item.kind, receivedAt: item.receivedAt, data: item.data });
+        snapshot.includedCount = snapshot.events.length;
+        snapshot.partial = snapshot.includedCount < matching.length;
+        if (JSON.stringify(snapshot).length > 12000) { snapshot.events.shift(); break; }
+      }
+      snapshot.includedCount = snapshot.events.length;
+      snapshot.partial = snapshot.includedCount < matching.length;
+      return snapshot;
+    },
     isRuleActive: (id, key, expectedRevision) => isActive() && rules.some(rule => rule.id === id && rule.enabled && rule.keys.includes(key)
       && (!expectedRevision || revision(rule) === expectedRevision) && isAllowed(key)),
     replace(input, promptInput) {
@@ -145,6 +171,9 @@ export function createWakeRuleRuntime({ root, isAllowed, isActive, dispatch, red
       const key = explicitKey || wakeEventKey(event);
       // 没有会话归属的只有网关全局事件；不把归属不明的通知或申请广播到其他群。
       if (!key && event.post_type !== 'meta_event' && kind !== 'notice:bot_status') return;
+      if (key && !isAllowed(key)) return;
+      history.push({ key, kind, receivedAt: new Date(now()).toISOString(), data: JSON.parse(redact(JSON.stringify(safeWakeEvent(event)))) });
+      if (history.length > 2000) history.splice(0, history.length - 2000);
       for (const rule of rules) {
         if (!rule.events.includes(kind) && !rule.events.includes(`${event.post_type}:*`)) continue;
         for (const target of key ? rule.keys.filter(k => k === key) : rule.keys) emit(rule, target, kind, event);

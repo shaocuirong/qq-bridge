@@ -11,7 +11,7 @@ test('real console assets load with console authentication and reject anonymous 
   let server;
   try {
     fs.mkdirSync(path.join(h.temp, 'public'));
-    const assets = [['console-tools.js', 'text/javascript'], ['console-tools.css', 'text/css'], ['console-wake.js', 'text/javascript'], ['console-wake.css', 'text/css']];
+    const assets = [['console-tools.js', 'text/javascript'], ['console-tools.css', 'text/css'], ['console-wake.js', 'text/javascript'], ['console-wake.css', 'text/css'], ['console-simulation.js', 'text/javascript']];
     for (const [name] of assets) fs.copyFileSync(new URL(`../public/${name}`, import.meta.url), path.join(h.temp, 'public', name));
     h.setMode('reserved2'); server = h.startConsoleServer();
     if (!server.listening) await new Promise(resolve => server.once('listening', resolve));
@@ -84,6 +84,18 @@ test('tool management API composes protocols, validates targets and isolates aut
     assert.equal((await request('/api/wake-rules', { rules: [{ ...rule, keys: ['group:999'] }] })).status, 400);
     h.cfg.socialV2.tools.get_group_info = false;
     assert.equal((await request('/api/socialV2/tools/call', { key: 'group:456', action: 'get_group_info', params: {}, dryRun: true }, true)).status, 403);
+    const configBeforeSelection = JSON.stringify(h.cfg.socialV2);
+    const oldGroups = (await request('/api/socialV2/tool-prompts')).value.groups;
+    assert.equal((await request('/api/socialV2/tool-prompts/selection', { selectedGroupIds: [] }, true)).status, 403);
+    assert.equal((await request('/api/socialV2/tool-prompts/selection', { selectedGroupIds: ['unknown'] })).status, 400);
+    const selection = await request('/api/socialV2/tool-prompts/selection', { selectedGroupIds: ['memory'] });
+    assert.equal(selection.status, 200);
+    assert.deepEqual(selection.value.groups.filter(g => g.enabled).map(g => g.id), ['memory']);
+    assert.equal(selection.value.groups.find(g => g.id === 'memory').text, oldGroups.find(g => g.id === 'memory').text);
+    const selectedPrompt = await request('/api/socialV2/prompt?key=group:456', undefined, true);
+    assert.deepEqual(selectedPrompt.value.toolSuites.groups, ['memory']);
+    assert.ok(selectedPrompt.value.enabledTools.includes('qq_set_wake_config'));
+    assert.equal(JSON.stringify(h.cfg.socialV2), configBeforeSelection);
   } finally {
     if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
     await h.close();

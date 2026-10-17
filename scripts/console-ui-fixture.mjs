@@ -8,6 +8,7 @@ import { roleCharStats, roleSectionReport } from '../src/role-card.js';
 import { pickBucketMs } from '../src/token-ledger.js';
 import { manualDirCommand } from '../src/state-acl.mjs';
 import { toolGroupsView } from '../src/tool-prompts.js';
+import { GROUPS } from '../src/qq-tool-groups.js';
 import { prepareActionParams } from '../src/tool-catalog.js';
 import { normalizeWakeRules, WAKE_EVENT_TYPES, WAKE_PROMPT_REFERENCES } from '../src/wake-rules.js';
 import { DEFAULT_WAKE_PROMPTS, WAKE_PROMPT_LABELS } from '../src/wake-prompts.js';
@@ -390,7 +391,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
         res.end(await readFile(file));
         return;
       }
-      if (method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css'].includes(path)) {
+      if (method === 'GET' && ['/console-tools.js', '/console-tools.css', '/console-wake.js', '/console-wake.css', '/console-simulation.js'].includes(path)) {
         res.writeHead(200, { 'content-type': `${path.endsWith('.js') ? 'text/javascript' : 'text/css'}; charset=utf-8` });
         res.end(await readFile(resolve(projectRoot, 'public', path.slice(1)))); return;
       }
@@ -584,6 +585,12 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/socialV2/tool-prompts':
             toolPrompts[body.group] = { text: body.text, enabled: body.enabled !== false, protocolVersion: 2 };
             return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
+          case '/api/socialV2/tool-prompts/selection': {
+            if (!Array.isArray(body.selectedGroupIds) || body.selectedGroupIds.some(id => !GROUPS.some(g => g.id === id))) return json({ ok: false, error: '工具组无效' }, 400);
+            const selected = new Set(body.selectedGroupIds);
+            for (const group of toolGroupsView({ socialV2: state.v2 }, toolPrompts)) toolPrompts[group.id] = { text: group.text, enabled: selected.has(group.id), protocolVersion: 2 };
+            return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
+          }
           case '/api/wake-rules':
             try { if (body.rules !== undefined) wakeRulesState = normalizeWakeRules(body.rules); Object.assign(wakePromptOverrides, body.prompts || {}); }
             catch (error) { return json({ ok: false, error: error.message }, 400); }
