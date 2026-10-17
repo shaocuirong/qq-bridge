@@ -14,7 +14,7 @@ const args = process.argv.slice(2);
 const original = args.includes('--original');
 const record = args.includes('--record-baseline');
 const artifacts = args.find(x => x.startsWith('--artifacts='))?.slice('--artifacts='.length);
-const views = ['overview', 'sessions', 'persona', 'social-v2', 'social-v1', 'slang', 'usage', 'access', 'operations', 'reference'];
+const views = ['overview', 'sessions', 'persona', 'social-v2', 'social-v1', 'slang', 'persons', 'usage', 'access', 'operations', 'reference'];
 const legacyIds = JSON.parse((await readFile(join(here, 'console-ui-legacy-ids.json'), 'utf8')).replace(/^\uFEFF/, ''));
 const baselinePath = join(here, 'console-ui-contracts.json');
 if (record && !original) throw new Error('--record-baseline requires --original; only the pre-redesign console can define the baseline.');
@@ -100,7 +100,7 @@ try {
     assert.equal(new Set(ids).size, ids.length, 'Duplicate DOM IDs detected');
   });
 
-  if (!original) await test('All ten navigation destinations work and preserve unsaved form values across polling', async () => {
+  if (!original) await test('All eleven navigation destinations work and preserve unsaved form values across polling', async () => {
     for (const view of views) {
       await navigate(view);
       const visiblePages = await page.locator('[data-page]').evaluateAll(nodes => nodes.filter(x => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden').map(x => x.dataset.page));
@@ -233,6 +233,26 @@ try {
     assert.deepEqual(config.inferenceThresholds, [3, 6, 12]);
   });
 
+  // 只读校验：人物印象页的写操作不在改版前载荷基线里（基线只认那 24 次写），
+  // 所以这里只断言渲染结果，不点击任何会发请求的按钮。改版前的原版页面没有这一页，跳过。
+  if (!original) await test('Person memory page renders cross-group impressions and both fact tabs (read-only)', async () => {
+    await navigate('persons');
+    await page.waitForFunction(() => document.getElementById('personListPeople')?.textContent.includes('100001'));
+    const people = await page.textContent('#personListPeople');
+    assert.match(people, /100001/);
+    assert.match(people, /演示交流群/, '人物表要显示出现过哪些会话（跨群的关键信息）');
+    assert.match(await page.textContent('#personStats'), /人物 2 位/, '统计条要显示人物数');
+    await page.locator('.person-tab[data-person-tab="candidate"]').click();
+    const candidate = await page.textContent('#personListCandidate');
+    assert.match(candidate, /最近在准备考研/);
+    assert.match(candidate, /group:123456789/, '证据只给控制台看，要能看到来自哪个会话');
+    await page.locator('.person-tab[data-person-tab="confirmed"]').click();
+    const confirmed = await page.textContent('#personListConfirmed');
+    assert.match(confirmed, /喜欢猫/);
+    assert.match(confirmed, /写 Rust/);
+    await page.locator('.person-tab[data-person-tab="people"]').click();
+  });
+
   await test('Test message and AI notification reach only the mock endpoints', async () => {
     await (await reveal('#tsKind')).selectOption('group');
     await fill('tsId', '123456789');
@@ -355,7 +375,7 @@ try {
         await navigate(view);
         const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, document: document.documentElement.scrollWidth, body: document.body.scrollWidth }));
         assert(dimensions.document <= dimensions.viewport + 1, `${width}px / ${view}: ${JSON.stringify(dimensions)}`);
-        if (artifacts && width === 390 && ['overview', 'social-v2', 'slang'].includes(view)) {
+        if (artifacts && width === 390 && ['overview', 'social-v2', 'slang', 'persons'].includes(view)) {
           await mkdir(resolve(artifacts), { recursive: true });
           await page.screenshot({ path: resolve(artifacts, `mobile-${view}.png`), fullPage: true, animations: 'disabled' });
         }

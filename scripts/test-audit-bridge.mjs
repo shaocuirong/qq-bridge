@@ -23,6 +23,7 @@ await test('unavailable preset catalogue fails closed for QQ and learner session
   assert.equal(h.resolvePresetName('missing', { strict: true }), '');
   await assert.rejects(h.ensureSession('group:456'));
   await assert.rejects(h.ensureSlangLearnerSession());
+  await assert.rejects(h.ensurePersonLearnerSession());
   assert.equal(h.calls.created.length, 0);
 });
 await test('session creation crossing a mode change never accepts stale permissions', async (h) => {

@@ -69,7 +69,7 @@ const LOCAL_EXECUTION_TOOLS = [
   'workflow', 'ralph',
   'cordis_inspect_list', 'cordis_inspect_query',
   'dsh_snapshot', 'dsh_rollback', 'incident_resolved',
-  'job_list', 'job_output', 'job_kill', 'skill', 'present',
+  'job_list', 'job_output', 'job_kill', 'present',
   'get_goal', 'create_goal', 'update_goal',
   'dev_mode_set', 'dev_mode_status', 'dev_mode_subagent',
   // 0.2.0 新增对账

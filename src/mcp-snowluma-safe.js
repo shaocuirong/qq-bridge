@@ -18,6 +18,8 @@ import { z } from 'zod';
 // 在 MCP 里拦会连「安全拒绝理由」都拿不到，反而让模型无法把话说清楚。
 import { SENSITIVE_RE } from './sensitive.js';
 import { serializeModelData } from './qq-model-view.js';
+import { readAgentTokenFromState, isStaleTokenError } from './mcp-agent-auth.js';
+import { registerToolSuites } from './mcp-tool-suites.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -79,7 +81,7 @@ function unquoteJsonString(value) {
 }
 
 // 说明：本文件曾经有一对 escapeCqText() / messageSegments()，用于在 MCP 侧构造消息段。
-// 它们从来没有被任何工具调用（发送一律走桥接的 /api/send/*，由桥接统一构造文本段并做
+// 它们从来没有被任何工具调用（发送一律走桥接的 /api/send 端点，由桥接统一构造文本段并做
 // CQ 转义，见 bridge.js 的 onebotSend），属于"看起来在防护、实际是死代码"的假安全。
 // 这里直接删除，避免以后有人以为 MCP 侧还有一道 CQ 转义而放松桥接那一层。
 
@@ -138,19 +140,100 @@ async function agentApi(path, init = {}) {
   // 令牌本身仍然只在真有时才发：/api/status 的模式探测（legacyReadToolAllowed）本来就是
   // 无令牌调用，桥接对它单独放行并按最小对象返回。
   headers['x-agent-call'] = '1';
-  const res = await fetch(`${agentApiBase()}${path}`, { ...rest, headers, signal: AbortSignal.timeout(timeoutMs) });
-  let body = null;
-  try { body = await res.json(); } catch { body = null; }
-  if (!res.ok) {
-    throw new Error(body?.error || `桥接 API HTTP ${res.status}`);
+  const send = async () => {
+    const res = await fetch(`${agentApiBase()}${path}`, { ...rest, headers, signal: AbortSignal.timeout(timeoutMs) });
+    let body = null;
+    try { body = await res.json(); } catch { body = null; }
+    return { res, body };
+  };
+  const initial = await send();
+  if (!isStaleTokenError(initial.body?.error)) {
+    if (!initial.res.ok) {
+      throw new Error(initial.body?.error || `桥接 API HTTP ${initial.res.status}`);
+    }
+    // 桥接的部分端点会用 200 + {ok:false,error} 表达业务失败（例如发送被审计拦截）。
+    // 不检查 body.ok 会把「被拦截」当成「发送成功」上报给模型 —— 模型据此认为消息已发出，
+    // 于是不再重试也不告诉用户，是典型的静默错误。
+    if (initial.body && typeof initial.body === 'object' && initial.body.ok === false) {
+      throw new Error(initial.body.error || '桥接 API 返回 ok:false（未说明原因）');
+    }
+    return initial.body;
   }
-  // 桥接的部分端点会用 200 + {ok:false,error} 表达业务失败（例如发送被审计拦截）。
-  // 不检查 body.ok 会把「被拦截」当成「发送成功」上报给模型 —— 模型据此认为消息已发出，
-  // 于是不再重试也不告诉用户，是典型的静默错误。
-  if (body && typeof body === 'object' && body.ok === false) {
-    throw new Error(body.error || '桥接 API 返回 ok:false（未说明原因）');
+  // ── 会话令牌自愈 ──────────────────────────────────────────────────────────
+  // 走到这里只有一个原因：桥接明确拒绝了这次调用的**会话令牌**（模型照抄的是 prompt 里
+  // 那一行，会随会话轮换过期）。换成 state/social-v2.json 里该 key 的**当前代**令牌，
+  // 并且只重试这一种失败；白名单、工具开关之类的失败不做任何重试。
+  // 安全性：目标会话由 key 唯一确定，换令牌只是把「这枚令牌只能动它自己那个会话」
+  // 这件事按 key 重新取一次，不会放宽任何跨会话权限；模型始终看不到明文令牌。
+  const key = extractSessionKey(path, rest);
+  const fresh = key ? readAgentTokenFromState(ROOT, key) : null;
+  if (!fresh || fresh === (headers['x-agent-token'] ?? '')) {
+    throw new Error(initial.body?.error || `桥接 API HTTP ${initial.res.status}`);
   }
-  return body;
+  headers['x-agent-token'] = fresh;
+  const retried = await send();
+  if (!retried.res.ok) {
+    throw new Error(retried.body?.error || `桥接 API HTTP ${retried.res.status}`);
+  }
+  if (retried.body && typeof retried.body === 'object' && retried.body.ok === false) {
+    throw new Error(retried.body.error || '桥接 API 返回 ok:false（未说明原因）');
+  }
+  return retried.body;
+}
+
+// 从一次 agentApi 调用里取出目标会话 key（用于令牌自愈时按 key 查当前代令牌）。
+// 只做「精确形状」匹配：group:123 / private:123。刻意不做任何宽松猜测 ——
+// 猜错 key 就可能把**另一个会话**的令牌塞进这次调用，那是跨会话越权，不是自愈。
+function extractSessionKey(path, init = {}) {
+  const text = String(path ?? '');
+  const query = /[?&]key=([^&]+)/.exec(text);
+  const fromQuery = query ? decodeURIComponent(query[1]) : '';
+  if (/^(group|private):\d+$/.test(fromQuery)) return fromQuery;
+  if (typeof init.body === 'string') {
+    try {
+      const parsed = JSON.parse(init.body);
+      const fromBody = String(parsed?.key ?? '');
+      if (/^(group|private):\d+$/.test(fromBody)) return fromBody;
+    } catch {}
+  }
+  return null;
+}
+
+// 桥接对「水位越界」的拒绝原文（bridge.js 的 requestedReadThroughSeqV2 抛出）。
+// 单独抽出来是为了让「该不该重试」这件事一眼可查：只有这一类**水位过期**的失败才补读重试。
+const STALE_THROUGH_SEQ_RE = /throughSeq 必须是不超过已展示连续消息水位的非负安全整数/;
+
+/**
+ * 带 readThroughSeq 的确认类调用（qq_mark_read / qq_set_wake_config）。
+ *
+ * 为什么需要：唤醒 prompt 里的 readThroughSeq 是**当时**的水位，模型思考期间只要有新消息
+ * 到达，那个值就成了过期水位，桥接会（正确地）拒绝。于是收尾这一步直接失败，模型既没能
+ * 标记已读也没能设置下一次唤醒，接着又被反复唤醒 —— state/tool-calls.jsonl 里有 5 次实证。
+ *
+ * 修法：被拒时**先补读一次当前未读**，用桥接返回的新 readThroughSeq 重试一次。
+ * 关键点是【不抬水位】：新值来自桥接自己按「已展示给模型」算出的水位，所以只会确认
+ * 模型确实看过的消息，绝不会把没读到的消息标成已读（那正是桥接拦这件事的本意）。
+ * 补读拿到的新消息会一并在结果里返回，模型能看到自己错过了什么。
+ */
+async function ackCallWithFreshSeq(path, key, token, body, timeoutMs) {
+  const header = () => ({ 'x-agent-token': token ?? readAgentTokenFromState(ROOT, key) ?? '' });
+  const call = (extra) => agentApi(path, {
+    method: 'POST',
+    body: JSON.stringify(extra ? { ...body, ...extra } : body),
+    headers: header(),
+    ...(timeoutMs ? { timeoutMs } : {})
+  });
+  try {
+    return await call(null);
+  } catch (error) {
+    const message = String(error?.message ?? error ?? '');
+    // 只有「水位过期」才补读重试；沉睡前观察没做完、令牌不认之类的失败原样抛出。
+    if (!STALE_THROUGH_SEQ_RE.test(message)) throw error;
+    const fresh = await agentApi(`/api/socialV2/unread?key=${encodeURIComponent(key)}&limit=30`, { headers: header() });
+    const seq = Number(fresh?.readThroughSeq);
+    if (!Number.isSafeInteger(seq) || seq < 0) throw error;
+    return { ...(await call({ throughSeq: seq })), readThroughSeq: seq, refreshedThroughSeq: true };
+  }
 }
 
 async function authorizeRead(key) {
@@ -205,6 +288,8 @@ const TOOL_CONFIG_FLAGS = {
   qq_memory_clear: 'memory',
   qq_slang_query: 'slangQuery',
   qq_slang_submit: 'slangSubmit',
+  qq_person_query: 'personQuery',
+  qq_person_note: 'personNote',
   qq_send_voice: 'sendVoice',
   qq_list_voices: 'sendVoice',
   // 下面这些曾经漏登记。漏一个不是"多注册一个工具"那么轻：桥接那边按 `v2ToolEnabled(flag)`
@@ -485,7 +570,7 @@ server.tool(
   },
   async ({ key, token, throughSeq }) => {
     try {
-      const data = await agentApi('/api/socialV2/mark-read', { method: 'POST', body: JSON.stringify({ key, throughSeq }), headers: { 'x-agent-token': token } });
+      const data = await ackCallWithFreshSeq('/api/socialV2/mark-read', key, token, { key, throughSeq });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `标记已读失败：${error?.message ?? error}` }], isError: true };
@@ -520,7 +605,7 @@ server.tool(
   },
   async ({ key, token, config, throughSeq }) => {
     try {
-      const data = await agentApi('/api/socialV2/wake-config', { method: 'POST', body: JSON.stringify({ key, config, throughSeq }), headers: { 'x-agent-token': token } });
+      const data = await ackCallWithFreshSeq('/api/socialV2/wake-config', key, token, { key, config, throughSeq });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `设置唤醒配置失败：${error?.message ?? error}` }], isError: true };
@@ -658,7 +743,10 @@ server.tool(
         method: 'POST',
         body: JSON.stringify({ key, purpose, timeoutMs, minNewMessages, quietMs }),
         headers: { 'x-agent-token': token },
-        timeoutMs: Math.min(725000, (Number(timeoutMs) || 30000) + Math.max(Number(quietMs) || 0, 10000) + 20000)
+        // 客户端预算必须**长于**桥接的硬截止，否则客户端先中断，桥接侧那次等待还在跑，
+        // 之后同会话的重试全被 429 挡回（会话被锁死到那次等待结束）。
+        // 桥接预算（src/bridge.js 等待路由）= timeoutMs + quietMs(最多 120000) + 5000。
+        timeoutMs: Math.min(780000, (Number(timeoutMs) || 30000) + 120000 + 35000)
       });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
@@ -878,6 +966,50 @@ server.tool(
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `提交黑话失败：${error?.message ?? error}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  'qq_person_query',
+  '查询「人物档案」：按 QQ 号跨群共享的长期印象与聊过的话题（只读）。不带 query 时返回当前会话里出现过的人的档案；带 query（昵称片段 / QQ 号 / 印象关键词）时检索整个档案库——包括这个人**在别的群里**留下的印象，所以换群聊天也能接得上。返回不含任何聊天原文与其它群名。需要记新印象用 qq_person_note。',
+  {
+    key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
+    token: z.string().min(1).describe('会话令牌（见唤醒提示中的【会话令牌】）'),
+    query: z.string().optional().describe('可选：按昵称/QQ 号/印象关键词检索全库；留空只看本会话出现过的人')
+  },
+  async ({ key, token, query }) => {
+    try {
+      const q = query ? `&q=${encodeURIComponent(String(query))}` : '';
+      const data = await agentApi(`/api/socialV2/person/query?key=${encodeURIComponent(key)}${q}`, { headers: { 'x-agent-token': token } });
+      return { content: [{ type: 'text', text: serializeModelData(data) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `查询人物档案失败：${error?.message ?? error}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  'qq_person_note',
+  '给某位群友记一条长期印象/聊过的话题（按 QQ 号跨群共享，写后立即生效，之后在任何群里都能看到）。适合「他喜欢猫」「在做考研准备」「别叫他全名」这类下次聊天还用得上的稳定信息；不要记一次性闲聊、别人的八卦，也不要记手机号/住址/身份证/密码等隐私信息（会被拒绝）。不要频繁写、不要逐条记流水账。qq 优先用 qq_get_active_members / qq_get_message_detail 里查到的真实 QQ 号；只传 name 时桥接会按本会话的群名片推断，对不上会要求你改用 qq。',
+  {
+    key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
+    token: z.string().min(1).describe('会话令牌（见唤醒提示中的【会话令牌】）'),
+    qq: z.union([z.number(), z.string()]).optional().describe('对方 QQ 号（推荐，最准确）'),
+    name: z.string().optional().describe('对方在本会话里的群名片/昵称（仅在不方便取 QQ 号时用）'),
+    text: z.string().describe('要记的印象，第三人称短句，最多 120 字'),
+    kind: z.enum(['trait', 'topic', 'fact']).optional().describe('trait=性格/喜好/雷区，topic=在做的事/聊过的话题，fact=其它事实（默认 fact）')
+  },
+  async ({ key, token, qq, name, text, kind }) => {
+    try {
+      const data = await agentApi('/api/socialV2/person/note', {
+        method: 'POST',
+        body: JSON.stringify({ key, qq: qq != null ? String(qq) : '', name: name || '', text, kind: kind || '' }),
+        headers: { 'x-agent-token': token }
+      });
+      return { content: [{ type: 'text', text: serializeModelData(data) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `记录人物印象失败：${error?.message ?? error}` }], isError: true };
     }
   }
 );
@@ -1245,5 +1377,10 @@ if (cfg.socialV2?.tools?.getForwardMsg !== false) {
     }
   );
 }
+
+// 套件注册、schema 与调用适配集中在独立模块。
+registerToolSuites(server, { getConfig, agentApi, serializeModelData });
+
+export { server };
 
 await server.connect(new StdioServerTransport());

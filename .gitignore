@@ -6,6 +6,7 @@ node_modules/
 state/
 config.json
 *.log
+*.out
 *.bak
 *.bak-*
 
@@ -41,8 +42,14 @@ config.json
 /scripts/fix-probe-workspace-title.mjs
 /scripts/patch-qq-chat-v2-collect-memory.mjs
 /scripts/patch-qq-chat-v2-presleep.mjs
+/scripts/patch-qq-chat-v2-skills.mjs
 /scripts/patch-qq-chat-v2-stickers.mjs
+# 把 ~/.dsh/skills 下四个 QQ 技能的全文内联进二代 persona（依赖本机技能目录）
+/scripts/inline-qq-skills.mjs
 /scripts/patch-web-mcp-timeout.mjs
+/scripts/_tmp_*.mjs
+.tmp-*/
+/plugins/qq-agent-presets/presets/22/
 
 
 # 本机专用的隐私扫描规则（含真实 QQ 号/路径，不入库）
@@ -62,6 +69,8 @@ docs/qq-bridge-PUBLISH_PLAN.md
 docs/qq-bridge-SECURITY_AUDIT.md
 docs/guides/PROJECT_GUIDE.md
 docs/guides/VOICE.md
+# 技能进预设：含"怎么放宽 qq-tool-restrict 守卫"的说明，属地 ③（写了怎么放宽边界），不入库
+docs/guides/QQ_SKILLS_IN_PRESET.md
 
 # 语音库（用户个人音频素材，config.json 的 socialV2.voice.dir 指向此处）
 audio/

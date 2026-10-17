@@ -142,7 +142,7 @@ console.log('## qq-bridge 语音系统：MCP 工具与开关映射');
   ok(/qq_send_voice: 'sendVoice'/.test(mcp) && /qq_list_voices: 'sendVoice'/.test(mcp), '两个工具都受 sendVoice 开关控制');
   ok(/voice\?\.enabled !== false/.test(mcp), '注册期也检查 voice.enabled（关闭时不注册，省 token）');
   const bridge = read('src/bridge.js');
-  ok(/sendVoice: 'qq_send_voice \/ qq_list_voices'/.test(bridge), 'qq_get_prompt 的 toolMap 含语音工具');
+  ok(bridge.includes('enabledToolNames(cfg)') && read('src/qq-tool-groups.js').includes("name: 'qq_send_voice'"), 'qq_get_prompt 从共享注册表生成语音工具清单');
   ok(/'sendVoice'\]/.test(bridge), 'config API 的 toolFlags 含 sendVoice');
   const ex = JSON.parse(read('config.example.json'));
   // 这一段查的是**「出厂默认就该是关的」**这类契约 —— 权威声明是随仓库发布的
@@ -166,10 +166,10 @@ console.log('## qq-bridge 语音系统：MCP 工具与开关映射');
 console.log('## qq-bridge 语音系统：控制台与 preset');
 {
   const html = read('public/console.html');
-  ok(html.includes('data-v2-tool="sendVoice"'), '控制台有 sendVoice 工具开关');
+  ok(read('public/console-tools.js').includes('legacyTools') && fs.readFileSync(new URL('../src/qq-tool-groups.js', import.meta.url), 'utf8').includes("qq_send_voice'"), '控制台按分组渲染旧工具（含 qq_send_voice）');
   ok(html.includes('id="voiceList"') && html.includes('id="voiceSendBtn"'), '控制台有语音库调试面板');
   ok(/api\/voice\/list/.test(html) && /api\/voice\/send/.test(html), '面板调用操作者端点');
-  const preset = read(path.join('dsh', 'agent-presets', 'qq-chat-v2', 'agent.cordis.yml'));
+  const preset = read(path.join('prompts', 'tools', 'voice.md'));
   ok(preset.includes('qq_send_voice') && preset.includes('qq_list_voices'), 'qq-chat-v2 人设描述语音能力');
   ok(/语音\*\*默认是关闭的\*\*/.test(preset), '人设说明默认关闭');
   // DSH 0.1.7 起守卫的权威实现只有一份，在 qq-agent-presets bundle 里

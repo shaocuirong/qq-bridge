@@ -7,6 +7,9 @@ import { fileURLToPath } from 'node:url';
 import { roleCharStats, roleSectionReport } from '../src/role-card.js';
 import { pickBucketMs } from '../src/token-ledger.js';
 import { manualDirCommand } from '../src/state-acl.mjs';
+import { toolGroupsView } from '../src/tool-prompts.js';
+import { prepareActionParams } from '../src/tool-catalog.js';
+import { normalizeToolAutomationRules, WAKE_EVENT_TYPES, WAKE_PROMPT_REFERENCES } from '../src/tool-automations.js';
 
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const timestamp = '2026-09-20T08:30:00.000Z';
@@ -326,6 +329,27 @@ export function makeFixtureState() {
       { id: 'demo-rejected', content: '测试噪声', meaning: '', risk: '演示排除项', status: 'rejected', count: 1, source: 'auto', createdAt: timestamp, updatedAt: timestamp },
     ],
     security: { interceptNotify: true },
+    personConfig: { enabled: true, autoExtract: true, inject: true, extractMinMessages: 20, extractCooldownMs: 600000, injectMaxPersons: 6, injectMaxFactsPerPerson: 4, notePerHour: 30, learnerPreset: '' },
+    // 人物档案（离线示例）：同一个 QQ 号出现在两个群里，用来演示"跨群"这条主线。
+    persons: [
+      {
+        qq: '100001', names: [{ name: '演示群友', count: 7, lastAt: timestamp }],
+        groups: [{ id: '123456789', name: '演示交流群', count: 7, lastAt: timestamp }],
+        facts: [
+          { id: 'pf-c1', kind: 'trait', text: '喜欢猫，养了一只叫豆豆的橘猫', status: 'confirmed', source: 'ai', count: 2, evidence: [{ key: 'group:123456789', name: '演示群友', text: '我家猫又胖了', time: Date.parse(timestamp) }], firstAt: timestamp, lastAt: timestamp },
+          { id: 'pf-c2', kind: 'topic', text: '最近在准备考研', status: 'candidate', source: 'auto', count: 1, evidence: [{ key: 'group:123456789', name: '演示群友', text: '这周要刷两套真题', time: Date.parse(timestamp) }], firstAt: timestamp, lastAt: timestamp },
+        ],
+        firstSeenAt: timestamp, lastSeenAt: timestamp, updatedAt: timestamp,
+      },
+      {
+        qq: '100002', names: [{ name: '开发群群友', count: 3, lastAt: timestamp }, { name: '演示群友', count: 2, lastAt: timestamp }],
+        groups: [{ id: '100003', name: '演示开发群', count: 5, lastAt: timestamp }],
+        facts: [
+          { id: 'pf-d1', kind: 'fact', text: '写 Rust，周末在折腾自托管', status: 'confirmed', source: 'manual', count: 1, evidence: [{ key: 'group:100003', name: '开发群群友', text: '这周末继续折腾 my server', time: Date.parse(timestamp) }], firstAt: timestamp, lastAt: timestamp },
+        ],
+        firstSeenAt: timestamp, lastSeenAt: timestamp, updatedAt: timestamp,
+      },
+    ],
     // state/ 的 ACL 是否已收紧。离线演示默认给「未收紧」，这样告警条在预览里可见
     // （真实场景：Windows 上未以管理员身份运行桥接时就是这个状态）。
     hardenStateDir: false,
@@ -339,6 +363,8 @@ export function makeFixtureState() {
 
 /** Bind only to loopback. Mutations affect this server's disposable in-memory state. */
 export async function startConsoleFixture({ port = 0, original = false, htmlPath, logWrites = false } = {}) {
+  const toolPrompts = {};
+  let toolAutomationRules = [];
   const file = htmlPath || resolve(projectRoot, original ? 'scripts/fixtures/console.before.html' : 'public/console.html');
   await readFile(file); // Fail early rather than displaying a broken preview.
   const state = makeFixtureState();
@@ -358,6 +384,10 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           'content-security-policy': "connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'" });
         res.end(await readFile(file));
         return;
+      }
+      if (method === 'GET' && ['/console-tools.js', '/console-tools.css'].includes(path)) {
+        res.writeHead(200, { 'content-type': `${path.endsWith('.js') ? 'text/javascript' : 'text/css'}; charset=utf-8` });
+        res.end(await readFile(resolve(projectRoot, 'public', path.slice(1)))); return;
       }
       if (path === '/favicon.ico') { res.writeHead(204); res.end(); return; }
       if (method === 'GET' && path === '/__fixture/requests') return json({ requests, unknownRequests });
@@ -448,7 +478,10 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/sessions': return json({ sessions: state.sessions });
           case '/api/pending': return json({ pending: [{ key: 'group:123456789', kind: 'approval', toolName: '演示工具', reason: '等待管理员确认（离线示例）' }] });
           case '/api/social': return json({ config: state.social, states: state.socialStates, pendingSummaries: { 'group:123456789': 2 } });
+          case '/api/qzone': return json({ ok: true, config: state.qzone || { enabled: false, pollIntervalMs: 300000, authorIds: [], targetKeys: [] }, status: { writable: true, delivered: 0 } });
           case '/api/socialV2/config': return json({ ok: true, config: state.v2 });
+          case '/api/socialV2/tool-prompts': return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
+          case '/api/tool-automations': return json({ ok: true, rules: toolAutomationRules, eventTypes: WAKE_EVENT_TYPES, references: WAKE_PROMPT_REFERENCES });
           case '/api/socialV2/activity': return json({ ok: true, paused: state.paused });
           case '/api/socialV2/tool-log': return json({ ok: true, entries: state.toolLog });
           case '/api/socialV2/feedback': return json({ ok: true, entries: state.feedback });
@@ -469,6 +502,18 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             hint: '用 qq_send_voice 传 name 即可把其中一个当语音发出去',
           });
           case '/api/slang': return json({ ok: true, entries: state.slang, config: state.slangConfig });
+          case '/api/persons': return json({
+            ok: true,
+            entries: state.persons,
+            writable: true,
+            config: state.personConfig,
+            tools: { personQuery: true, personNote: true },
+            counts: {
+              total: state.persons.length,
+              confirmed: state.persons.reduce((n, p) => n + p.facts.filter((f) => f.status === 'confirmed').length, 0),
+              candidate: state.persons.reduce((n, p) => n + p.facts.filter((f) => f.status === 'candidate').length, 0),
+            },
+          });
           // state/ 的 ACL 收紧结果：用离线示例值演示「未收紧」的告警条（Windows 上未提权时的真实情况）
           // 命令本身必须来自 `src/state-acl.mjs`，不能在这里另抄一份：这里曾经抄的是
           // `icacls DIR /inheritance:r /grant:r "%USERNAME%:(OI)(CI)F" /T /C` —— 正是那句
@@ -527,7 +572,21 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/whitelist': state.whitelist = body; return json({ ok: true });
           case '/api/social': state.social = body; return json({ ok: true });
           case '/api/social/state': state.socialStates[body.key] = { phase: body.phase }; return json({ ok: true });
-          case '/api/socialV2/config': state.v2 = body; return json({ ok: true });
+          case '/api/qzone': state.qzone = body; return json({ ok: true });
+          case '/api/socialV2/config':
+            state.v2 = { ...state.v2, ...body, tools: { ...state.v2.tools, ...body.tools }, toolGroups: { ...state.v2.toolGroups, ...body.toolGroups } };
+            return json({ ok: true, config: state.v2 });
+          case '/api/socialV2/tool-prompts':
+            toolPrompts[body.group] = { text: body.text, enabled: body.enabled !== false, protocolVersion: 2 };
+            return json({ ok: true, groups: toolGroupsView({ socialV2: state.v2 }, toolPrompts) });
+          case '/api/tool-automations':
+            try { toolAutomationRules = normalizeToolAutomationRules(body.rules); }
+            catch (error) { return json({ ok: false, error: error.message }, 400); }
+            return json({ ok: true, rules: toolAutomationRules, eventTypes: WAKE_EVENT_TYPES, references: WAKE_PROMPT_REFERENCES });
+          case '/api/socialV2/tools/call': {
+            const prepared = prepareActionParams(body.action, body.key, body.params);
+            return json(prepared.ok ? { ok: true, action: body.action, params: prepared.params, dryRun: body.dryRun, mock: true } : prepared, prepared.ok ? 200 : 400);
+          }
           case '/api/socialV2/activity': state.paused = body.paused; return json({ ok: true });
           case '/api/socialV2/tool-log/clear': state.toolLog = []; return json({ ok: true });
           case '/api/socialV2/feedback-clear': state.feedback = []; return json({ ok: true });
@@ -553,6 +612,42 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/workspace/reset': state.sessions = []; return json({ ok: true, archivedCount: 3 });
           case '/api/session/reset': state.sessions = state.sessions.filter(x => x.key !== body.key); return json({ ok: true });
           case '/api/slang/extract': return json({ ok: true });
+          // 人物档案（离线示例）：写操作只改内存。
+          case '/api/persons/config': {
+            state.personConfig = { ...state.personConfig, ...(body.personMemory ?? {}) };
+            return json({ ok: true, config: state.personConfig, tools: body.tools ?? { personQuery: true, personNote: true } });
+          }
+          case '/api/persons/extract': return json({ ok: true, keys: ['group:123456789'] });
+          case '/api/persons/batch-delete': {
+            const qqs = body.qqs || [];
+            const before = state.persons.length;
+            state.persons = state.persons.filter((p) => !qqs.includes(p.qq));
+            return json({ ok: true, removed: before - state.persons.length });
+          }
+          case '/api/persons/batch-status': {
+            const items = body.items || [];
+            let changed = 0;
+            for (const it of items) {
+              const person = state.persons.find((p) => p.qq === it.qq);
+              const fact = person?.facts.find((f) => f.id === it.factId);
+              if (fact) { fact.status = body.status; changed += 1; }
+            }
+            return json({ ok: true, changed });
+          }
+          case '/api/persons/clear': {
+            const status = body.status || '';
+            let removedFacts = 0;
+            let removedPersons = 0;
+            if (!status) { removedPersons = state.persons.length; state.persons = []; }
+            else {
+              for (const p of state.persons) {
+                const before = p.facts.length;
+                p.facts = p.facts.filter((f) => f.status !== status);
+                removedFacts += before - p.facts.length;
+              }
+            }
+            return json({ ok: true, removedFacts, removedPersons, total: state.persons.length });
+          }
           case '/api/slang/research': return json({ ok: true, count: body.ids?.length || 1 });
           case '/api/slang/batch-confirm':
           case '/api/slang/batch-reject':
@@ -577,6 +672,36 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
         if (method === 'DELETE') state.slang = state.slang.filter(x => x !== entry);
         else Object.assign(entry, body, slangMatch[2] ? { status: slangMatch[2] === 'confirm' ? 'confirmed' : 'rejected' } : {});
         return json({ ok: true });
+      }
+      const personMatch = path.match(/^\/api\/persons\/(\d{1,12})(?:\/facts(?:\/([^/]+))?)?$/);
+      if (personMatch && ['POST', 'PATCH', 'DELETE'].includes(method)) {
+        const qq = personMatch[1];
+        const factId = personMatch[2] ? decodeURIComponent(personMatch[2]) : '';
+        let person = state.persons.find((p) => p.qq === qq);
+        // 手动记人：不存在的 QQ 号要能建出来（与真实端点一致，否则离线预览会误导）。
+        if (!person && method === 'POST' && !factId) {
+          person = { qq, names: body.name ? [{ name: body.name, count: 1, lastAt: timestamp }] : [], groups: [], facts: [], firstSeenAt: timestamp, lastSeenAt: timestamp, updatedAt: timestamp };
+          state.persons.push(person);
+        }
+        if (!person) return json({ ok: false, error: `没有 QQ ${qq} 的档案` }, 404);
+        if (method === 'DELETE' && !factId) {
+          const before = state.persons.length;
+          state.persons = state.persons.filter((p) => p !== person);
+          return json({ ok: true, removed: before - state.persons.length });
+        }
+        if (method === 'DELETE' && factId) {
+          person.facts = person.facts.filter((f) => f.id !== factId);
+          return json({ ok: true, person });
+        }
+        if (method === 'POST' && !factId) {
+          person.facts.push({ id: `pf-new-${person.facts.length + 1}`, kind: body.kind || 'fact', text: body.text || '', status: 'confirmed', source: 'manual', count: 1, evidence: [], firstAt: timestamp, lastAt: timestamp });
+          return json({ ok: true, person });
+        }
+        const fact = person.facts.find((f) => f.id === factId);
+        if (!fact) return json({ ok: false, error: '没有这条印象' }, 404);
+        if (method === 'PATCH') Object.assign(fact, { text: body.text ?? fact.text, kind: body.kind ?? fact.kind });
+        else if (body.status) fact.status = body.status;
+        return json({ ok: true, person });
       }
       unknownRequests.push({ method, path });
       return json({ ok: false, error: `Unimplemented fixture route: ${method} ${path}` }, 404);

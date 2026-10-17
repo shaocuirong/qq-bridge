@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const tests = [
+  'test-tool-suites-runtime.mjs', 'test-tool-automations.mjs', 'test-tool-management-http.mjs',
+  'test-tool-prompts.mjs', 'test-mcp-tool-registration.mjs',
   'test-audit-bridge.mjs', 'test-audit-protocol.mjs', 'test-audit-protocol-helpers.mjs',
   'test-audit-security.mjs', 'test-audit-security-mcp.mjs',
   'test-audit-setup.mjs', 'test-audit-setup-guards.mjs',
@@ -15,6 +17,14 @@ const tests = [
   // scripts/test-dsh-session-retire.mjs）。
   'test-dsh-inbox-projection.mjs',
   'test-md-to-plain.mjs', 'test-slang-learn.mjs', 'test-mux-reconnect.mjs',
+  // 人物档案（按 QQ 号跨群共享的印象/话题）：模型/裁剪/隐私过滤/注入边界/提取解析。
+  // 重点钉住「候选不进上下文」「证据原文不进上下文」「跨群按 QQ 号合并」这三条。
+  'test-person-memory.mjs',
+  // 人物档案的桥接集成（真实 HTTP 端点 + 真实 prompt 投递，虚拟网关全离线）：
+  // 单元测试查不出"端点漏保存/写错 status/证据混进注入块"这类接线错误。
+  'test-person-memory-bridge.mjs',
+  'test-person-merged-ui.mjs',
+  'test-person-extraction.mjs',
   'test-token-economy.mjs', 'test-qq-model-view.mjs', 'test-qq-preset-contract.mjs',
   'test-reply-wait.mjs', 'test-preset-prompt.mjs', 'test-role-card.mjs',
   // 令牌账本 / 价目表 与 体检修复回归（纯函数，无外部依赖）
@@ -29,8 +39,17 @@ const tests = [
   'test-voice-gui.mjs',
   // 控制台静态契约（跑不了 Playwright 的环境下的替代回归）
   'test-console-static.mjs',
+  // 源码注释陷阱：行注释里的 `/*` 会让「朴素块注释剥离器」吞掉大段真实代码，
+  // 使别的回归脚本静默失去覆盖（实测吞过 bridge.js 的 1721 行）。
+  'test-source-comment-trap.mjs',
   // 语音系统整体结构检查（入口/依赖/端点/开关/文档一致性）
   'test-voice-system.mjs',
+  // 入站语音识别（ASR）：结构 + 纯函数 + 假网关跑回退链；
+  // 真跑 DSH 内置 SenseVoice 子进程要 QQ_BRIDGE_ASR_LIVE=1（审计环境不打生产）
+  'test-asr-inbound.mjs',
+  // 「一轮一会话」成本护栏：每次回复新开会话 + 归档旧会话 + 社交状态（未读/已读/令牌）不被轮换清掉
+  'test-fresh-session.mjs',
+  'test-auto-finish.mjs',
   // SnowLuma 账号/token 自发现（换 QQ 账号后 token 会变，写死的工具会 401）
   'test-snowluma-conn.mjs',
   // 启动器与编码（乱码根因：.cmd 里的非 ASCII 会被 cmd 按 ANSI 解码）

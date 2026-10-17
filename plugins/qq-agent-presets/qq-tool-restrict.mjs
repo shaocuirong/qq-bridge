@@ -113,7 +113,7 @@ const LOCAL_EXECUTION_TOOLS = [
   // 会话/交付/任务面
   // 注意：`todo_write` 与 `ask_user_question` **故意不在**此名单——它们是下面
   // SAFE_EXACT 允许的无害模型侧工具，两边不能自相矛盾。
-  'job_list', 'job_output', 'job_kill', 'skill', 'present',
+  'job_list', 'job_output', 'job_kill', 'present',
   'get_goal', 'create_goal', 'update_goal',
   // 0.2.0 新增对账（见上方长注释的 4 类判定）：
   //   ① 全局层默认启用 ⇒ 真的会进仿真会话
@@ -168,12 +168,41 @@ const SAFE_PREFIXES = [
 
 // 无害模型侧工具：ask_user_question 用于把问题转给管理员/用户，
 // todo_write 仅维护任务列表。若后续 preset 不再挂载这些工具，保留无害。
+// 可选补丁 scripts/patch-qq-chat-v2-skills.mjs 加入 'skill'：
+// 它只读技能目录（~/.dsh/skills 等）的静态文档，不是本地执行能力；
+// 未挂载 tool-skill 的预设不受影响。启用前读 docs/guides/QQ_SKILLS_IN_PRESET.md。
 const SAFE_EXACT = new Set([
   'ask_user_question',
   'todo_write',
+  'skill',
 ])
 
-export function apply(ctx) {
+/**
+ * dsh-ops 的本地执行 / 文件工具（Windows DSH 的 ops 套件）。
+ *
+ * ⚠️ 默认**不放行**：放行等于把「本机命令执行 + 文件读写」交给该会话，而 QQ 仿真会话面对的
+ * 是一群陌生人。要放行的 preset 必须在**自己的守卫行**上传 `config: { allowOps: true }`
+ * （当前只有 qq-chat-v2 这么做），于是 qq-chat（一代）仍保持"无本地工具"。
+ *
+ * 名单取自 dsh-ops 0.3.0 发布的 schema（`node_modules/dsh-ops/docs/schema-current.json`
+ * 的 tools + bashSchema），共 9 个。**它只解除桥接层的封锁**：真正能不能用还受该会话的沙箱
+ * 策略约束 —— `ops_bash` / `ops_run_background` / `ops_job_*` 要求会话是
+ * `danger-full-access`，文件三件套按 `read-only` / `workspace-write` 各自限权。
+ * 详见 docs/guides/QQ_SKILLS_IN_PRESET.md。
+ */
+const OPS_TOOL_NAMES = new Set([
+  'ops_bash',
+  'ops_glob',
+  'ops_grep',
+  'ops_inspect_local_file',
+  'ops_replace',
+  'ops_run_background',
+  'ops_job_list',
+  'ops_job_output',
+  'ops_job_kill',
+])
+
+export function apply(ctx, config) {
   // 1) 把已知危险全局工具从 schema 隐藏（restrict 只影响继承的全局层，
   //    不会误删 preset 自己注册的 scoped 工具）。
   // 逐个 restrict：当前 DSH 版本不存在的工具名会单独抛错并跳过，
@@ -194,11 +223,15 @@ export function apply(ctx) {
   }
 
   // 2) 执行期白名单：任何不在允许范围内的工具调用都会被拒绝。
+  //    守卫行上的 config 可额外放行 dsh-ops：`config: { allowOps: true }`
+  //    （默认 false —— 不给就没这口子）。
+  const allowOps = config?.allowOps === true
   ctx.tools.guard((exec) => {
     const name = exec?.name
     if (typeof name !== 'string' || name.length === 0) return '工具名无效，已拒绝'
     if (SAFE_EXACT.has(name)) return
     if (SAFE_PREFIXES.some((prefix) => name.startsWith(prefix))) return
+    if (allowOps && OPS_TOOL_NAMES.has(name)) return
     return `工具 "${name}" 不在 QQ 桥接白名单内，已拒绝（仅允许 QQ MCP 工具与无害模型侧工具）`
   })
 }

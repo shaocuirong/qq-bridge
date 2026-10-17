@@ -9,14 +9,20 @@
 
 ## guides/ —— 面向使用者 / 运维
 
+新增：[MCP 工具、私有协议与事件唤醒](guides/MCP_TOOLS_AND_WAKE.md) —— 工具管理页、全局/私有提示词拆分、上游事件和定时任务、参数校验与回归说明。
+
 | 文档 | 一句话说明 | 状态 |
 | --- | --- | --- |
 | [guides/PROJECT_GUIDE.md](guides/PROJECT_GUIDE.md) | **权威项目说明书**（113 KB / 1450+ 行）：架构、内外核划分、数据流、配置全解、安全机制、调试与改进指南，含 2026-08-20 ~ 2026-09-11 的逐轮更新记录 | ✅ **唯一权威版本**（另一份同名精简版已归档到 legacy，见下） |
 | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) | DSH 端安装说明：`qq-chat` / `qq-chat-v2` preset 与三个 MCP server 怎么挂到目标设备的 DSH 上 | ✅ |
 | [guides/VOICE.md](guides/VOICE.md) | 语音发送全解：独立工具（`voice-tool/` 的图形界面与命令行）、桥接 CLI、AI 工具、控制台面板，以及**工具拆出后的配置解析顺序** | ✅ 2026 整理时已更新（工具移到上一级 `voice-tool/`） |
+| [guides/ASR.md](guides/ASR.md) | **入站语音识别**：收到的 QQ 语音（SILK）→ 网关解码 → 本地 ffmpeg → **DSH 内置 SenseVoice 子进程** → 文字写进消息；含准备脚本、配置、排障与安全边界 | ✅ 2026-10-16 新增（与 VOICE.md 的「发语音」互相独立） |
+| [guides/PERSON_MEMORY.md](guides/PERSON_MEMORY.md) | **人物印象（按 QQ 号跨群共享）**：他在 A 群聊过的东西，到 B 群接得上。与黑话同构的「候选 → 确认 → 注入」；含数据模型、注入边界、隐私过滤、配置、控制台与排障 | ✅ 2026-10-16 新增 |
+| [guides/SESSION_COST.md](guides/SESSION_COST.md) | **会话成本：一轮一会话**（`socialV2.context.freshSessionPerWake`）：每次回复新开会话、上下文改由已读/未读快照承担，单轮成本固定为「一条提示词+一条回复」；含实测对比、代价与边界 | ✅ 2026-10-16 新增（默认开启） |
 | [guides/TOKEN_USAGE_CONSOLE.md](guides/TOKEN_USAGE_CONSOLE.md) | 控制台「令牌与花费」看板：数据来源、计价口径（峰谷分时）、API、配置 | ✅ |
 | [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md) | 控制台离线预览（`npm run preview:console`）与离线浏览器回归（`npm run test:console-ui`）怎么用 | ✅ 2026 整理时自 `scripts/` 移入 |
 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) | **安全基线与威胁模型**：威胁主体、已实现的边界（准入/工具面/出站/控制台/落盘/网络）、已知残余风险、发布前回归清单、改动检查单 | ✅ **改动安全相关代码前必读**（2026-09-20 新增） |
+| [guides/QQ_SKILLS_IN_PRESET.md](guides/QQ_SKILLS_IN_PRESET.md) | **QQ 技能与二代仿真预设的现状**：为什么**不内联**（那两份技能是宿主机侧内容、QQ 侧跑不了）、只补了 6 个工具名（覆盖 40/40）、**skill 工具已放开并配了隔离的技能注册表**（否则宿主机层 provider 会把 60+ 条技能塞进每个会话）、两个技能已改成 QQ 侧视角；另含内联开关与 `allowOps` 的风险说明 | ✅ 2026-10-16/17 新增/更新；**本地文档**（含放宽 `qq-tool-restrict` 守卫的说明，已列入 `.gitignore`） |
 
 ## design/ —— 设计与规划（读设计意图用）
 
@@ -45,7 +51,7 @@
 | [audits/CODE_AUDIT_2026-09-20.md](audits/CODE_AUDIT_2026-09-20.md) | 同日较早的代码体检（P0/P1/P2/P3 清单与实现细节、指标统计：monolith 度量、重复代码盘点） | ⚠️ **多数已修**：修复状态以 AUDIT_FIXES 为准；本文的实现细节与度量仍有参考价值（2026-09-20 补登进索引） |
 | [audits/AUDIT_REPORT_2026-09-20.md](audits/AUDIT_REPORT_2026-09-20.md) | 全项目体检：四条独立审计线（状态机与重连、安全边界、健壮性与资源、配置/脚本/文档一致性）+ 按影响排序的修复 | ✅ 结论仍有效（取代 2026-09-18 那份） |
 | [audits/CONSOLE_FEATURES_REPORT.md](audits/CONSOLE_FEATURES_REPORT.md) | 控制台功能增强：人格管理、两层提示词（仿真层/人格层）、DSH 思考强度 | ✅ |
-| [audits/CONSOLE_UI_REDESIGN_REPORT.md](audits/CONSOLE_UI_REDESIGN_REPORT.md) | 控制台改版报告：九页导航 + 全局搜索 + 浅色/深色主题，纯前端改造 | ⚠️ 页数已增至 10（新增「令牌与花费」），其余仍有效 |
+| [audits/CONSOLE_UI_REDESIGN_REPORT.md](audits/CONSOLE_UI_REDESIGN_REPORT.md) | 控制台改版报告：九页导航 + 全局搜索 + 浅色/深色主题，纯前端改造 | ⚠️ 页数已增至 11（新增「令牌与花费」「人物印象」），其余仍有效 |
 | [audits/TOKEN_OPTIMIZATION.md](audits/TOKEN_OPTIMIZATION.md) | `reserved2` 的 token 开销优化与消息水位协议、升级与回退说明（README 直接引用它） | ✅ |
 | [audits/TOKEN_COST_ANALYSIS.md](audits/TOKEN_COST_ANALYSIS.md) | token 成本实测档案与优化清单（含本文档形成时的个人用量数据） | ⚠️ 数据是当时的实测快照；结论方向仍被 TOKEN_OPTIMIZATION 引用，具体数字别当现值 |
 
@@ -66,6 +72,9 @@
 | 搞懂整体架构 / 全部配置项 | [guides/PROJECT_GUIDE.md](guides/PROJECT_GUIDE.md) |
 | 在新设备上把 qq-bridge 接进 DSH | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) |
 | 发语音 / 换 QQ 账号后语音工具 401 | [guides/VOICE.md](guides/VOICE.md)（独立工具在仓库上一级 `../voice-tool/`） |
+| 让 AI 听懂别人发的语音（收语音转文字） | [guides/ASR.md](guides/ASR.md)、`scripts/test-asr-inbound.mjs` |
+| AI 越聊越贵 / 想固定每次回复的成本 | [guides/SESSION_COST.md](guides/SESSION_COST.md)、`scripts/test-fresh-session.mjs` |
+| 让 AI 记住某个人（跨群也认得） / 管跨群记忆 | [guides/PERSON_MEMORY.md](guides/PERSON_MEMORY.md)、`scripts/test-person-memory.mjs` |
 | 看 AI 烧了多少钱 / 计价口径 | [guides/TOKEN_USAGE_CONSOLE.md](guides/TOKEN_USAGE_CONSOLE.md)、[audits/TOKEN_COST_ANALYSIS.md](audits/TOKEN_COST_ANALYSIS.md) |
 | 改控制台界面并做离线回归 | [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md)、[audits/CONSOLE_UI_REDESIGN_REPORT.md](audits/CONSOLE_UI_REDESIGN_REPORT.md) |
 | 改代码前先知道有哪些坑 | [guides/DSH_020_ADAPTATION.md](guides/DSH_020_ADAPTATION.md)（最新，DSH 适配）、[audits/AUDIT_FIXES_2026-09-20.md](audits/AUDIT_FIXES_2026-09-20.md)、[audits/AUDIT_REPORT_2026-09-20.md](audits/AUDIT_REPORT_2026-09-20.md) |

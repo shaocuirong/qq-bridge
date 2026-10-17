@@ -10,6 +10,7 @@
 
 把 QQ 消息接入 DSH agent：QQ 好友/群发来的消息会变成 DSH 会话里的用户消息，agent 的回复（含提问、工具审批）会发回 QQ。
 
+
 > ⚠️ **当前版本 `v0.2.0`，适配 DSH 0.2.0-rc.2**（在该版本上逐项实测：`npm run verify:adaptation`）。
 > 鉴权用 `~/.dsh` 里持久化的浏览器会话签名密钥**离线铸造 Cookie** —— DSH 0.1.7 起进程启动 token
 > 只存在于内存、不再落盘，旧版「从 guard 日志里读 token」的方式已失效。agent preset 是 DSH 0.1.7 起的
@@ -338,9 +339,11 @@ SnowLuma 同一个账号的 **HTTP token（默认 3000 端口）与 WebSocket to
 ## 已知限制
 
 - agent 回复在回合结束时一次性发送（不做流式逐字转发）；回复超过 `socialV2.send.maxMessageChars`（默认 500 字，可用 `social.maxReplyChars` 调整）自动按句读/URL 边界分段
-- 图片及部分表情可以通过安全下载接入多模态模型；语音/视频以及无法取得图片字节的消息仍使用占位文本
-- **发**语音是支持的（独立工具的图形界面 / 命令行 / AI 工具，见 `docs/README.md` 的文档索引）；但**收**到的语音目前只显示占位文本，不做语音转写入上下文
+- 图片及部分表情可以通过安全下载接入多模态模型；视频以及无法取得图片字节的消息仍使用占位文本
+- **发**语音是支持的（独立工具的图形界面 / 命令行 / AI 工具，见 `docs/README.md` 的文档索引；默认关闭）
+- **收**语音默认**会转成文字**进上下文（`socialV2.asr`，默认开启）：QQ 语音条（SILK）由网关解码 → 本地 ffmpeg 规范化 → **DSH 内置 SenseVoice 子进程**识别 → 写进正文 `[语音: 文本]`。识别不出来时保留 `[语音]` 占位，不编造内容。准备步骤、配置与排障见 [docs/guides/ASR.md](docs/guides/ASR.md)
 - **AI 发语音默认关闭**（`socialV2.voice.enabled` 与 `tools.sendVoice` 默认 `false`）：先把音频放进 `audio/`，再到控制台打开开关；你自己发语音不受这个开关影响
+- **一轮一会话默认开启**（`socialV2.context.freshSessionPerWake`）：每次唤醒/回复都新开一个 DSH 会话、不带上文，上下文改由提示词里的**已读/未读快照**（未读消息 + 最近若干条 + `readThroughSeq` + 自己刚说过的话 + 轻量记忆）承担，于是一次回复的成本固定为「一条提示词 + 一条回复」，不再随会话聊了多久而上涨；旧会话归档。热聊场景（缓存一直命中）老做法单轮可能更便宜，想换回去把该键设为 `false`。详见 [docs/guides/SESSION_COST.md](docs/guides/SESSION_COST.md)
 - agent 的 Markdown 回复会转成纯文本（链接保留 `文字 (url)` 形式）
 - `@snowluma/sdk` 的 npm 发布版存在 ESM 扩展名 bug，本仓库通过 postinstall 补丁修复（见 `scripts/patch-snowluma-sdk.mjs`）
 

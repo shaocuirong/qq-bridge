@@ -9,6 +9,8 @@
 
 ## 一、顶层布局
 
+MCP 管理重构新增：`src/mcp-tool-suites.js`（注册与参数入口）、`src/tool-catalog.js`（官方 schema 校验）、`src/tool-protocols.js`（按组注入）、`src/tool-automations.js`（事件/定时唤醒）、`prompts/tools/`（各工具组私有协议）、`public/console-tools.js` / `.css`（独立管理模块）。详见 [MCP_TOOLS_AND_WAKE.md](guides/MCP_TOOLS_AND_WAKE.md)。
+
 ```
 DSH/                         ← 工作区根（不是仓库根）
 ├── qq-bridge/               ← 本仓库（QQ ↔ DSH 桥接）
@@ -21,7 +23,8 @@ DSH/                         ← 工作区根（不是仓库根）
 
 | 目录 | 作用 | 能不能删/动 |
 | --- | --- | --- |
-| `src/` | **桥接内核**：主程序、DSH 客户端、三个 MCP server、黑话/表情/语音共享库 | 不能动。`bridge.js` 是主程序（约 10,400 行，QSH 计划拆分）；`voice-core.js` 与 `snowluma-conn.js` 是**独立工具也在用的单一实现**。**目录里只应有 `.js`**：曾经的 `bridge.js.bak-*` 会污染全局搜索并看起来像 module，2026-09-20 已移出（见下） |
+| `src/` | **桥接内核**：主程序、DSH 客户端、三个 MCP server、黑话/人物档案/表情/语音共享库 | 不能动。`bridge.js` 是主程序（约 10,400 行，QSH 计划拆分）；`voice-core.js` 与 `snowluma-conn.js` 是**独立工具也在用的单一实现**。`slang-learner.js`（黑话）与 `person-memory.js`（人物档案：按 QQ 号跨群共享的印象/话题，见 [guides/PERSON_MEMORY.md](guides/PERSON_MEMORY.md)）是纯函数模块，被 `bridge.js` 与 `scripts/audit-bridge-harness.mjs` 共用。**目录里只应有 `.js`**：曾经的 `bridge.js.bak-*` 会污染全局搜索并看起来像 module，2026-09-20 已移出（见下） |
+| `src/qq-tool-groups.js` · `src/tool-prompts.js` | **工具套件**：16 组 / 198 action / 37 个可注册工具的注册表（纯数据+纯函数，含 `actionEnabled`、`toolsToRegister`、`authorizeToolCall`、`normalizeToolGroups`），以及每组提示词区的存储与注入块拼装（`state/tool-prompts.json`，2000/8000 字符上限）。说明见 [guides/QQ_TOOL_SUITES.md](guides/QQ_TOOL_SUITES.md) | 不能动：MCP 工具面与桥接开关都从它派生 |
 | `scripts/` | 调试 / 测试 / 一次性运维脚本（见第二节命名约定） | 测试脚本不能删；`cleanup-*` / `fix-*` / `patch-*` / `diag-*` 多为历史遗留 |
 | `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat`、`agent-presets/qq-chat-v2`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/qq-agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch |
 | `plugins/` | DSH 插件：`qq-mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`qq-agent-presets`（生成两个 preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
@@ -29,7 +32,7 @@ DSH/                         ← 工作区根（不是仓库根）
 | `roles/` | 人格卡（`小鲸鱼.md` / `傲娇助手.md` / `README.md`）：控制台「人格与角色」页可编辑，保存即生效 | 用户内容，别乱动 |
 | `assets/` | 仓库用图片等资源（`deepseek娘.png`；`project-intro.mp4` 已改为 Release 附件、不入库） | 别加体积大的二进制 |
 | `audio/` | **语音库**（用户的真实音频）。桥接的 AI 语音工具只能发这里的文件；独立 `voice-tool` 默认也指向这里 | **用户文件，绝不删除/移动** |
-| `state/` | **运行时数据**（会话映射、模式、角色、黑话库、日志、锁、令牌）。`.gitignore` 排除 | **用户数据，绝不删除/移动** |
+| `state/` | **运行时数据**（会话映射、模式、角色、黑话库 `slang.json`、人物档案 `persons.json`、日志、锁、令牌）。`.gitignore` 排除 | **用户数据，绝不删除/移动** |
 | `docs/` | 全部文档，按用途分子目录（见第三节） | 见第三节 |
 | `node_modules/` `.npm-cache/` | 依赖与 npm 缓存 | 忽略 |
 | `config.json` | 运行配置（真实配置**不入库**）；模板是 `config.example.json` | 值属于用户，别改 |
@@ -52,6 +55,7 @@ DSH/                         ← 工作区根（不是仓库根）
 | `probe-*.mjs` | **探针**：用来问 DSH/SnowLuma「实际支持什么」（RPC 形状、工具清单、事件流、工作区、模型、协议帧、settings 命名空间）。鉴权统一走 `probe-auth.mjs` | 保留，按需重跑 |
 | `probe-020-protocol.mjs` / `probe-020-settings.mjs` | 0.2.0 版探针：前者采样 `session/control` baseline、`session/projections`、`session/follow`、`$events`、`session/cancel` 的**原始帧结构**；后者列 settings 命名空间并**幂等写回**验证 `qq-mode` 可写。控制台「改模式不生效」时的第一手诊断 | 保留（`npm run probe:protocol` / `probe:settings`） |
 | `scan-dsh-tool-names.mjs` + `dsh-tool-names.mjs` | **工具名对账**：从已安装的 DSH 包里抽真实工具名，与 QQ 守卫的 restrict 名单双向求差（防拼错假名静默失效 / 防新版本新增能力漏隐藏）。抽取实现只有 `dsh-tool-names.mjs` 一份，`test-preset-local-tools.mjs` 与 `scan-dsh-tool-names.mjs` 共用 | 保留（每次升级 DSH 后跑一次） |
+| `refresh-snowluma-catalog.mjs` + 仓库根 `_snowluma-catalog.json` | **action 目录对账**：从 `@snowluma/mcp` 取 OneBot action 目录（远端优先，无外网时回退本地 `node_modules`），落成 `_snowluma-catalog.json`（1.14.22 实测 198 条 / 只读 80）。`--check` 判漂移（可进 CI）、`--gaps` 打印「只读但桥接未暴露」的清单，并标出 `readOnly` 与名字语义冲突的项。**注意**：目录的 `readOnly` 有误标（4 个 `send_*`/`share_*` 会真把卡片发进会话），不要拿它直接过滤出"安全集合"。说明见 [guides/SNOWLUMA_ACTION_GAPS.md](guides/SNOWLUMA_ACTION_GAPS.md) | 保留（`npm run catalog:refresh` / `catalog:check` / `catalog:gaps`；升级 SnowLuma 后跑一次） |
 | `probe-snowluma-heartbeat.mjs` | 只读探针：连 SnowLuma 的 OneBot WS，等一个 `meta_event/heartbeat`，打印载荷里的 `status.online` / **`status.good`**。桥接的上游健康主信号就是这个字段——它存不存在、拼写对不对只能拿**真实运行时**验证（SDK 不校验 data 载荷，取错字段不会报错）。不发消息、不建会话 | 保留（`npm run probe:heartbeat`） |
 | `voice-tool-locator.mjs` | 「发语音」独立工具（在仓库上一级 `../voice-tool/`）的位置解析 + 「它不在本仓库」时的统一跳过口径；支持 `QQ_BRIDGE_VOICE_TOOL_DIR` 覆盖 | 保留（被 6 个测试引用） |
 | `audit-bridge-harness.mjs` | 虚拟网关 + 沙箱化的桥接行为审计脚手架（被 `test-audit-bridge.mjs` 使用） | 保留 |

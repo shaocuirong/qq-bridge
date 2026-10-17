@@ -7,6 +7,7 @@ import { hasVoiceTool, skipVoiceTool, voiceToolPath } from './voice-tool-locator
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'public', 'console.html'), 'utf8');
+const toolUi = fs.readFileSync(path.join(ROOT, 'public', 'console-tools.js'), 'utf8');
 
 let bad = 0;
 const ok = (cond, name, extra = '') => {
@@ -28,10 +29,15 @@ const views = [...new Set([...html.matchAll(/data-view="([a-z0-9-]+)"/g)].map((m
 const pages = [...new Set([...html.matchAll(/data-page="([a-z0-9-]+)"/g)].map((m) => m[1]))].sort();
 ok(JSON.stringify(views) === JSON.stringify(pages), 'data-view 与 data-page 一一对应', `${views.length} 个：${views.join(', ')}`);
 
-console.log('## 工具开关');
-const tools = [...html.matchAll(/data-v2-tool="([A-Za-z]+)"/g)].map((m) => m[1]);
-ok(tools.includes('sendVoice'), 'sendVoice 开关存在', `共 ${tools.length} 个开关`);
-ok(new Set(tools).size === tools.length, '工具开关无重复');
+console.log('## 工具套件');
+// 旧工具开关已并入分组视图（由 /api/socialV2/tool-prompts 动态渲染），
+// 这里只钉住挂载点与数据接线，避免面板被误删或退回静态列表。
+ok(/id="tsGroups"/.test(html), '工具套件挂载点 #tsGroups 存在');
+ok(/legacyTools/.test(toolUi), '面板按 legacyTools 渲染原有工具');
+ok(toolUi.includes('/api/socialV2/tool-prompts'), '面板调用 tool-prompts 接口');
+ok(toolUi.includes('/api/socialV2/tools/call'), '面板调用试调用接口');
+try { new Function(toolUi); ok(true, '工具管理模块语法可解析'); }
+catch (e) { ok(false, '工具管理模块语法', e.message); }
 
 console.log('## 语音面板接线');
 ok(/id="voiceRefreshBtn"/.test(html) && /getElementById\('voiceRefreshBtn'\)\.addEventListener/.test(html), '刷新按钮已绑定事件');

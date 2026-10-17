@@ -68,6 +68,18 @@
     "workspaceTitle": "QQ 黑话学习",
     "autoResearch": true
   },
+  "personMemory": {
+    "enabled": true,
+    "autoExtract": true,
+    "extractMinMessages": 20,
+    "extractCooldownMs": 600000,
+    "inject": true,
+    "injectMaxPersons": 6,
+    "injectMaxFactsPerPerson": 4,
+    "notePerHour": 30,
+    "learnerPreset": "",
+    "workspaceTitle": "QQ 人物印象学习"
+  },
   "social": {
     "enabled": true,
     "maxReplyChars": 500,
@@ -179,7 +191,24 @@
       "maxWakePerMinute": 1,
       "maxWakePerHour": 12,
       "noActionLimit": 3,
-      "maxWakeConfigReminders": 2
+      "maxWakeConfigReminders": 2,
+      "_busy_lease_comment": [
+        "busyLeaseMs：「这个会话正在生成」这个标记的有效期（默认 15 分钟，最小 1 秒）。",
+        "  为什么需要：桥接拿「有回合在跑」当不能唤醒的依据，而那次回合的结束事件可能永远收不到",
+        "  （桥接在回合中途被重启 / 事件流断线 / DSH 侧回合被取消）。标记一旦永远挂着，之后每一次唤醒",
+        "  都会被暂存，而暂存只在「同一个会话的回合结束」时才补发 —— 该会话就再也不回复任何消息。",
+        "  超时后桥接会强制解除标记并重新排上积压的唤醒（真的还在跑也不丢：提示词以 queue 模式入队，",
+        "  回合结束后自然会被处理）；另有每分钟一次的兜底轮询负责补发。",
+        "  调大 = 更少误判但假死恢复更慢；调小 = 恢复更快但可能把长回合当成空闲。"
+      ],
+      "busyLeaseMs": 300000,
+      "_startup_catchup_comment": [
+        "startupCatchUpMs：启动后补投的时间窗（默认 30 分钟，0 = 关闭）。",
+        "  桥接重启（改配置/升级/崩溃自愈）期间收到的消息会留在未读队列里，重启后没有任何东西会主动",
+        "  把它们送进 DSH —— 表现就是「重启前 @ 了它，之后一直没反应」。开启后启动 5 秒时补一次唤醒，",
+        "  只补「最新一条未读还落在这个时间窗内」的会话，避免每次重启就把所有历史未读全刷一遍。"
+      ],
+      "startupCatchUpMs": 1800000
     },
     "send": {
       "burstEnabled": true,
@@ -230,6 +259,44 @@
       "ffmpegPath": "",
       "autoReadback": true
     },
+    "_asr_comment": [
+      "入站语音识别（ASR）：把**收到的** QQ 语音条转成文字写进消息正文（[语音: …]），AI 因此听得见语音。",
+      "与上面的 voice（发语音）互相独立：voice 默认关，asr 默认开——它只影响 AI 能不能听懂别人说什么，不外发任何东西。",
+      "sources 顺序即回退顺序：",
+      "  dsh = 复用 DSH 内置语音输入插件的 SenseVoice 推理子进程（本地 CPU、离线、不联网；需要先跑",
+      "        speech-asr/extract-dsh-speech.mjs 抽运行时 + speech-asr/fetch-sensevoice-model.mjs 下模型）；",
+      "  qq  = 网关动作 fetch_ptt_text（QQ 服务端转写，快但只覆盖『别人发来且 QQ 自己转过』的语音，历史旧语音常超时）。",
+      "inlineWaitMs：入站时最多同步等多久；没等到就先留 [语音] 占位，后台跑完再补写，不拖住消息入库与唤醒判定。",
+      "wakeOnTranscript：转写回来后如果这条语音命中唤醒条件（比如语音里喊了名字），补一次唤醒。",
+      "dsh.nodePath 留空 = 用桥接自己的 node（建议填 DSH 自带的 node，和插件运行环境一致）。"
+    ],
+    "asr": {
+      "enabled": true,
+      "sources": [
+        "dsh",
+        "qq"
+      ],
+      "inlineWaitMs": 1500,
+      "maxChars": 200,
+      "cacheTtlMs": 1800000,
+      "maxPerMinute": 30,
+      "wakeOnTranscript": true,
+      "voiceWakeMaxWaitMs": 15000,
+      "maxBytes": 4194304,
+      "maxSeconds": 120,
+      "ffmpegPath": "",
+      "dsh": {
+        "enabled": true,
+        "nodePath": "",
+        "runtimeDir": "",
+        "modelDir": "",
+        "threads": 2,
+        "language": "auto",
+        "timeoutMs": 120000,
+        "startupTimeoutMs": 180000,
+        "idleTimeoutMs": 300000
+      }
+    },
     "proactive": {
       "enabled": true,
       "checkIntervalMinMs": 1800000,
@@ -241,14 +308,86 @@
       "maxLength": 500,
       "notifyOwnerOnError": false
     },
+    "_session_comment": [
+      "对话成本护栏：freshSessionPerWake=true 时，**每次唤醒/回复都新开一个 DSH 会话、不带上一轮的历史**。",
+      "为什么：一个会话聊到底时，每轮都要把「整段历史 + 全部工具调用」重发一遍；缓存命中还算便宜，",
+      "  一旦隔得久缓存过期（冷群很常见）就全按 cacheMiss 计价，而且历史只增不减 —— 第二轮比第一轮贵、",
+      "  第三轮比第二轮贵，成本随轮次滚雪球。",
+      "换成了什么：把「上文」换成提示词里的已读/未读快照（未读消息 + 最近几条 + 已读水位 readThroughSeq",
+      "  + 自己刚说过的话 + 轻量记忆）。于是一次回复的成本 ≈ 一条提示词 + 一条回复，与聊了多久无关。",
+      "所以：开启时建议 wakeRecentLimit ≥ 8、wakeMaxChars ≥ 8000（模型靠这几条接上话头），本文件默认已按此给值；",
+      "  关掉（false）则回到「一个会话聊到底」的老行为，连续对话的 KV 缓存命中率更高、单轮更便宜，但长会话会越聊越贵。",
+      "不轮换的情况：closed-agent（管理员运维会话）与 internal:（黑话学习/研究）始终保持连续上下文。",
+      "轮换时上一轮的会话会被归档（DSH 里仍可查，只是从列表隐藏）；会话数会随回复数线性增长，控制台有批量归档入口。"
+    ],
     "context": {
       "recentLimit": 100,
       "unreadLimit": 30,
       "contextWindow": 20,
       "inlineWakeMessages": true,
       "wakeMessageLimit": 12,
-      "wakeRecentLimit": 4,
-      "wakeMaxChars": 6000
+      "wakeRecentLimit": 10,
+      "wakeMaxChars": 9000,
+      "freshSessionPerWake": true
+    },
+    "toolGroups": {
+      "send": {
+        "enabled": false
+      },
+      "social": {
+        "enabled": false
+      },
+      "readAck": {
+        "enabled": false
+      },
+      "history": {
+        "enabled": false
+      },
+      "groupInfo": {
+        "enabled": false
+      },
+      "groupAdmin": {
+        "enabled": false
+      },
+      "friend": {
+        "enabled": false
+      },
+      "emoji": {
+        "enabled": false
+      },
+      "file": {
+        "enabled": false
+      },
+      "qzone": {
+        "enabled": false
+      },
+      "album": {
+        "enabled": false
+      },
+      "account": {
+        "enabled": false
+      },
+      "credential": {
+        "enabled": false
+      },
+      "system": {
+        "enabled": false
+      },
+      "voice": {
+        "enabled": false
+      },
+      "placeholder": {
+        "enabled": false
+      },
+      "memory": {
+        "enabled": false
+      },
+      "slang": {
+        "enabled": false
+      },
+      "wake": {
+        "enabled": false
+      }
     }
   }
 }

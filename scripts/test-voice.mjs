@@ -197,7 +197,7 @@ if (!hasVoiceTool()) {
 
 console.log('## preset 人设已描述语音能力（否则 AI 不知道自己会说话）');
 {
-  const preset = fs.readFileSync(path.join(ROOT, 'dsh', 'agent-presets', 'qq-chat-v2', 'agent.cordis.yml'), 'utf8');
+  const preset = fs.readFileSync(path.join(ROOT, 'prompts', 'tools', 'voice.md'), 'utf8');
   ok(preset.includes('qq_send_voice'), 'qq-chat-v2 人设提到 qq_send_voice');
   ok(preset.includes('qq_list_voices'), 'qq-chat-v2 人设提到 qq_list_voices');
   ok(preset.includes('verified=true'), '人设说明 verified=true 的语义');
@@ -212,7 +212,7 @@ console.log('## 控制台契约');
 {
   const html = fs.readFileSync(path.join(ROOT, 'public', 'console.html'), 'utf8');
   const bridgeSrc = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
-  ok(html.includes('data-v2-tool="sendVoice"'), '控制台有 sendVoice 工具开关');
+  ok(fs.readFileSync(path.join(ROOT, 'public', 'console-tools.js'), 'utf8').includes('legacyTools') && fs.readFileSync(new URL('../src/qq-tool-groups.js', import.meta.url), 'utf8').includes("qq_send_voice'"), '控制台按分组渲染旧工具（含 qq_send_voice）');
   ok(bridgeSrc.includes("'sendVoice']"), 'config API 的 toolFlags 含 sendVoice');
   const uniq = (a) => [...new Set(a)].sort();
   const views = uniq([...html.matchAll(/data-view="([a-z0-9-]+)"/g)].map((m) => m[1]));

@@ -853,7 +853,7 @@ tr:last-child td {
 #sessionList,#pendingList {
   overflow:auto
 }
-.tool-log-table,.slang-scroll {
+.tool-log-table,.slang-scroll,.person-scroll {
   overflow:auto;
   border:1px solid var(--card-border);
   border-radius:10px;
@@ -864,10 +864,10 @@ tr:last-child td {
   min-width:1000px;
   table-layout:fixed
 }
-.slang-scroll table {
+.slang-scroll table,.person-scroll table {
   min-width:900px
 }
-.tool-log-table thead th,.slang-scroll thead th {
+.tool-log-table thead th,.slang-scroll thead th,.person-scroll thead th {
   position:sticky;
   top:0;
   background:var(--surface-hover);
@@ -886,13 +886,13 @@ tr:last-child td {
   white-space:pre-wrap;
   overflow-wrap:anywhere
 }
-.slang-tabs {
+.slang-tabs,.person-tabs {
   display:flex;
   gap:5px;
   border-bottom:1px solid var(--card-border);
   margin:22px 0 18px
 }
-.slang-tab {
+.slang-tab,.person-tab {
   border:0;
   border-radius:0;
   background:transparent;
@@ -900,15 +900,15 @@ tr:last-child td {
   color:var(--muted);
   font-size:13px
 }
-.slang-tab.active {
+.slang-tab.active,.person-tab.active {
   color:var(--accent);
   border-bottom:2px solid var(--accent);
   background:transparent
 }
-.slang-panel {
+.slang-panel,.person-panel {
   display:none
 }
-.slang-panel.active {
+.slang-panel.active,.person-panel.active {
   display:block
 }
 .empty-state {
@@ -1771,11 +1771,12 @@ button:active:not(:disabled) {
       <button data-view="social-v2" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>二代仿真<span class="nav-note">V2</span></button>
       <button data-view="social-v1" class="nav-item"><span class="nav-icon" aria-hidden="true">◇</span>一代仿真<span class="nav-note">V1</span></button>
       <button data-view="slang" class="nav-item"><span class="nav-icon" aria-hidden="true">▤</span>黑话词库</button>
+      <button data-view="persons" class="nav-item"><span class="nav-icon" aria-hidden="true">☺</span>人物印象</button>
       <div class="nav-label">管理</div>
       <button data-view="usage" class="nav-item"><span class="nav-icon" aria-hidden="true">◧</span>令牌与花费</button>
       <button data-view="access" class="nav-item"><span class="nav-icon" aria-hidden="true">⊙</span>访问与安全</button>
       <button data-view="operations" class="nav-item"><span class="nav-icon" aria-hidden="true">⌘</span>调试与运维</button>
-      <button data-view="reference" class="nav-item"><span class="nav-icon" aria-hidden="true">ⓘ</span>工具参考</button>
+      <button data-view="reference" class="nav-item"><span class="nav-icon" aria-hidden="true">ⓘ</span>MCP 工具管理</button>
     </nav>
     <div class="sidebar-bottom"><span class="local-dot"></span>本地控制台<small>QQ ↔ DeepSeek Harness</small></div>
   </aside>
@@ -2018,42 +2019,7 @@ button:active:not(:disabled) {
         <span class="meta" id="v2ActivityStatus">读取中…</span>
       </div>
 
-      <details class="settings-group"><summary>工具开关（关闭后 AI 不再拿到该工具；需重启 DSH 刷新工具清单，重启前仅调用时拒绝）</summary><div class="settings-content">
-      <div class="v2-tool-list" id="v2Tools">
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getPrompt"> <span><b>qq_get_prompt</b><span class="meta">查看角色卡、推荐值、可用工具、当前唤醒配置</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getUnread"> <span><b>qq_get_unread_messages</b><span class="meta">查看未读消息，不自动标记已读</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getRecent"> <span><b>qq_get_recent_messages</b><span class="meta">查看最近消息，支持 offset 扩大范围</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="socialState"> <span><b>qq_social_state</b><span class="meta">查看当前 WakeConfig、未读数、上次唤醒原因等</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendGroup"> <span><b>qq_send_group_message</b><span class="meta">向指定群发送一条纯文本消息</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendPrivate"> <span><b>qq_send_private_message</b><span class="meta">向指定好友发送一条纯文本消息</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="reply"> <span><b>qq_reply</b><span class="meta">引用/回复某条群消息并发送文本</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendBurst"> <span><b>qq_send_burst</b><span class="meta">按数组分多条发送，桥接自动加真人化间隔</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendMessage"> <span><b>qq_send_message</b><span class="meta">统一发送：一条/多条/引用/自定义或按字数计算间隔</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendPoke"> <span><b>qq_send_poke</b><span class="meta">发送 QQ 拍一拍（群聊传 targetUserId，私聊可省）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="waitMessages"> <span><b>qq_wait_for_messages</b><span class="meta">短暂等待新消息，有新消息立即返回或超时返回</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="feedback"> <span><b>qq_report_feedback</b><span class="meta">向控制台反馈 AI 遇到的问题/困惑</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getMyRecent"> <span><b>qq_get_my_recent_messages</b><span class="meta">查看自己最近发过的消息，避免重复</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getMessageDetail"> <span><b>qq_get_message_detail</b><span class="meta">按 message_id 查看单条消息完整内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getImages"> <span><b>qq_get_message_images</b><span class="meta">查看消息中的图片/表情内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getForwardMsg"> <span><b>qq_get_forward_msg</b><span class="meta">查看当前会话收到的合并转发消息内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getActiveMembers"> <span><b>qq_get_active_members</b><span class="meta">查看最近活跃成员列表</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="setWakeConfig"> <span><b>qq_set_wake_config</b><span class="meta">设置唤醒/潜水条件：无限期、有限时间、@/名字/关键词/概率等</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="markRead"> <span><b>qq_mark_read</b><span class="meta">标记当前未读为已读（看过但决定不回复）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="memory"> <span><b>qq_memory_append / qq_memory_query</b><span class="meta">轻量记忆：话题/想说的话/群友印象</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="slangQuery"> <span><b>qq_slang_query</b><span class="meta">查询已确认黑话/梗/网络表达</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="slangSubmit"> <span><b>qq_slang_submit</b><span class="meta">AI 提交陌生词/黑话给管理员筛选</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="listStickers"> <span><b>qq_list_stickers</b><span class="meta">查看/搜索 QQ 收藏表情（含备注和本地笔记）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getStickerImage"> <span><b>qq_get_sticker_image</b><span class="meta">看图理解没有备注的收藏表情</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendSticker"> <span><b>qq_send_sticker</b><span class="meta">发送收藏表情（一条消息只能一张，不能带文字）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="collectSticker"> <span><b>qq_collect_sticker</b><span class="meta">AI 偶尔收藏别人发的表情并写简短备注</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getSelfImage"> <span><b>qq_get_self_image</b><span class="meta">查看自己的默认 Q 版形象图片</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="stickerNote"> <span><b>qq_sticker_note</b><span class="meta">给表情记录本地含义/标签/用法</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="setStickerRemark"> <span><b>qq_set_sticker_remark</b><span class="meta">修改 QQ 官方表情备注（默认禁用，慎用）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendVoice"> <span><b>qq_send_voice / qq_list_voices</b><span class="meta">发送语音条（只能发语音库里的音频；偶然而为的强表达）</span></span></label>
-      </div>
-      <div class="meta" style="margin-top:6px">二代黑话学习：AI 可用 <code>qq_slang_submit</code> 提交陌生词，也可由桥接自动提取；管理员在「黑话词库」页面筛选确认后，词条会自动写入黑话提示词并注入 <code>qq_get_prompt</code> 与后续唤醒。</div>
-
-      </div></details>
+      <div class="meta" style="margin:14px 0">工具开关、动作参数和调用提示词已集中到 <a href="#reference">MCP 工具管理</a>。</div>
 <details class="settings-group"><summary>语音库与语音发送（调试）</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">
         语音库目录：<code>qq-bridge/audio/</code>（改 <code>socialV2.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
@@ -2113,7 +2079,7 @@ button:active:not(:disabled) {
       <div class="row">
         <label style="flex:1">合并窗口（毫秒）</label><input type="number" id="v2BatchWindowMs" min="1000" step="500" style="width:100px">
         <label style="flex:1">无行动兜底次数</label><input type="number" id="v2NoActionLimit" min="1" style="width:80px">
-        <label style="flex:1">唤醒收尾提醒次数</label><input type="number" id="v2MaxWakeConfigReminders" min="1" style="width:80px">
+        <span class="meta" style="flex:2">回合收尾由程序自动处理，无需模型反复确认。</span><input type="hidden" id="v2MaxWakeConfigReminders">
       </div>
       <div class="row">
         <label style="flex:1">启用沉睡前强制等待</label><input type="checkbox" id="v2PreSleepWaitEnabled" style="width:auto">
@@ -2213,6 +2179,15 @@ button:active:not(:disabled) {
         <label style="flex:1">未读上限</label><input type="number" id="v2ContextUnreadLimit" min="1" style="width:80px">
         <label style="flex:1">上下文窗口</label><input type="number" id="v2ContextWindow" min="1" style="width:80px">
       </div>
+      <div class="row">
+        <label style="flex:1">快照未读条数</label><input type="number" id="v2ContextWakeMessageLimit" min="1" max="100" style="width:80px">
+        <label style="flex:1">快照最近条数</label><input type="number" id="v2ContextWakeRecentLimit" min="0" max="20" style="width:80px">
+        <label style="flex:1">快照字数上限</label><input type="number" id="v2ContextWakeMaxChars" min="500" max="20000" style="width:90px">
+      </div>
+      <div class="row">
+        <label style="flex:1" title="每次唤醒/回复都新开一个 DSH 会话、不带上文；上下文由快照承担。单轮成本 ≈ 一条提示词+一条回复，不再随聊得越久越贵。">一轮一会话（省 token）</label><input type="checkbox" id="v2ContextFreshSession" style="width:auto">
+        <label style="flex:3" style="font-size:12px">开启后每次回复都新建会话（旧会话归档）：成本恒定；关闭则沿用同一会话，KV 缓存命中率高但长会话越聊越贵。</label>
+      </div>
 
       </div></details>
 <details class="settings-group"><summary>反馈工具参数（qq_report_feedback）</summary><div class="settings-content">
@@ -2278,6 +2253,9 @@ button:active:not(:disabled) {
         <span class="meta" id="v2ConfigMsg"></span>
       </div>
       <div class="meta" style="margin-top:4px">修改上面任意推荐/默认参数后，必须点这个按钮才会持久化；保存后会自动应用到仍使用默认唤醒配置的会话，重启后仍然保留。</div>
+
+
+
 
       </div></section>
 <section id="section-slang" data-page="slang" class="card span-all">
@@ -2396,22 +2374,93 @@ button:active:not(:disabled) {
         </div>
       </details>
     </section>
+    <section id="section-persons" data-page="persons" class="card span-all">
+      <h2>人物印象 / 聊过的话题</h2>
+      <div class="meta">按 <b>QQ 号</b>（而不是昵称）保存对某个人的长期印象，所以同一个人换群、改群名片也认得出来——他在 A 群聊过的东西，到 B 群接得上。来源有两条：AI 在聊天里用 <code>qq_person_note</code> 主动记的（直接生效），以及桥接像黑话一样从群聊自动提取的（进「候选」，需要你在下面确认）。确认后的印象会注入一代/二代 AI 的聊天上下文，只注入<b>当前会话里出现过的人</b>；别群的原文与群名不会给 AI，只有这个页面能看到。</div>
+      <div class="meta" id="personStats"></div>
+      <span class="meta" id="personMsg"></span>
+
+      <div class="person-tabs">
+        <button class="person-tab active" data-person-tab="people">人物</button>
+        <button class="person-tab" data-person-tab="candidate">候选印象</button>
+        <button class="person-tab" data-person-tab="confirmed">已确认印象</button>
+      </div>
+
+      <!-- 人物面板 -->
+      <div class="person-panel active" id="personPanelPeople">
+        <div class="row" style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="personSelectAllPeople"> 全选</label>
+          <button id="personBatchDelete" class="small danger">删除所选人物（含其全部印象）</button>
+          <button id="personRefresh" class="small">刷新</button>
+          <button id="personExtract" class="small">立即学习一次</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="personSearch" placeholder="搜索 QQ 号 / 昵称 / 印象内容" style="flex:1">
+        </div>
+        <div class="person-scroll" id="personListPeople">加载中…</div>
+      </div>
+
+      <!-- 候选印象面板 -->
+      <div class="person-panel" id="personPanelCandidate">
+        <div class="row" style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="personSelectAllCandidate"> 全选</label>
+          <button id="personBatchConfirm" class="small">批量确认</button>
+          <button id="personBatchReject" class="small">批量拒绝</button>
+          <button id="personBatchDeleteFacts" class="small danger">批量删除</button>
+          <button id="personClearCandidate" class="small danger">清空全部候选</button>
+        </div>
+        <div class="person-scroll" id="personListCandidate">加载中…</div>
+      </div>
+
+      <!-- 已确认印象面板 -->
+      <div class="person-panel" id="personPanelConfirmed">
+        <div class="row" style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="personSelectAllConfirmed"> 全选</label>
+          <button id="personBatchRestore" class="small">撤回为候选</button>
+          <button id="personBatchDeleteConfirmed" class="small danger">批量删除</button>
+          <button id="personClearConfirmed" class="small danger">清空全部已确认</button>
+        </div>
+        <div class="person-scroll" id="personListConfirmed">加载中…</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="meta" style="margin-bottom:6px">手动记一个人（QQ 号必填；印象可留空，之后再单独加）</div>
+      <div class="row">
+        <input type="text" id="personNewQQ" placeholder="QQ 号，如 10001" style="flex:1">
+        <input type="text" id="personNewName" placeholder="昵称 / 群名片（可选）" style="flex:1">
+        <select id="personNewKind" style="width:130px">
+          <option value="trait">性格/喜好</option>
+          <option value="topic">话题/在做的事</option>
+          <option value="fact" selected>其它事实</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <input type="text" id="personNewText" placeholder="印象，如：喜欢猫，养了一只叫豆豆的橘猫（可留空）" style="flex:1">
+        <button id="personAdd" class="small">保存</button>
+      </div>
+
+      <details style="margin-top:10px">
+        <summary class="meta">人物档案参数（可调）</summary>
+        <div class="row"><label style="flex:1">启用人物档案</label><input type="checkbox" id="personEnabled" style="width:auto"></div>
+        <div class="row"><label style="flex:1">自动从群聊提取（进候选）</label><input type="checkbox" id="personAutoExtract" style="width:auto"></div>
+        <div class="row"><label style="flex:1">注入到 AI 上下文</label><input type="checkbox" id="personInject" style="width:auto"></div>
+        <div class="row"><label style="flex:1">触发提取最少消息数</label><input type="number" id="personExtractMin" min="1" style="width:90px"></div>
+        <div class="row"><label style="flex:1">提取冷却（毫秒）</label><input type="number" id="personCooldown" min="0" step="1000" style="width:110px"></div>
+        <div class="row"><label style="flex:1">每次最多注入人数</label><input type="number" id="personInjectPersons" min="1" max="20" style="width:90px"></div>
+        <div class="row"><label style="flex:1">每人最多注入印象数</label><input type="number" id="personInjectFacts" min="1" max="10" style="width:90px"></div>
+        <div class="row"><label style="flex:1">AI 写印象上限（次/小时）</label><input type="number" id="personNotePerHour" min="1" style="width:90px"></div>
+        <div class="row"><label style="flex:1">qq_person_query 工具</label><input type="checkbox" id="personToolQuery" style="width:auto"></div>
+        <div class="row"><label style="flex:1">qq_person_note 工具</label><input type="checkbox" id="personToolNote" style="width:auto"></div>
+        <div class="row" style="margin-top:8px">
+          <button id="personConfigSave" class="small">保存人物档案参数</button>
+          <span class="meta" id="personConfigMsg"></span>
+        </div>
+      </details>
+    </section>
 <section id="section-reference" data-page="reference" class="card span-all">
-      <h2>DSH 侧 MCP 工具</h2>
-      <div class="meta">由 qq-bridge 的 MCP server 提供给 DSH agent；修改后需重启 DSH 才会刷新工具 schema。</div>
-      <table>
-        <tr><th>工具</th><th>说明</th></tr>
-        <tr><td>qq_status</td><td>登录状态（只读）</td></tr>
-        <tr><td>qq_list_groups</td><td>群列表（只返回白名单群）</td></tr>
-        <tr><td>qq_get_group_members</td><td>群成员（只读，群号必须白名单）</td></tr>
-        <tr><td>qq_get_group_history</td><td>群历史（只读，含 message_id，可作引用目标）</td></tr>
-        <tr><td>qq_send_group_message</td><td>发群消息；可选 <code>replyToMessageId</code> 引用/回复</td></tr>
-        <tr><td>qq_reply</td><td>专用“引用/回复”：在群里引用某条消息并发送文本</td></tr>
-        <tr><td>qq_send_private_message</td><td>发私聊；可选 <code>replyToMessageId</code> 引用/回复</td></tr>
-        <tr><td>qq_slang_query</td><td>查询已确认黑话/梗/网络表达（只读）</td></tr>
-        <tr><td>qq_slang_submit</td><td>AI 提交陌生词/黑话给管理员筛选</td></tr>
-      </table>
-      <div class="meta" style="margin-top:10px">二代仿真模式工具：qq_get_prompt / qq_get_unread_messages / qq_get_recent_messages / qq_social_state / qq_send_burst / qq_send_message / qq_wait_for_messages / qq_set_wake_config / qq_mark_read / qq_memory_* / qq_slang_query / qq_slang_submit 等。</div>
+      <h2>MCP 工具管理</h2>
+      <div class="meta">基础工具负责桥接功能；扩展工具把 SnowLuma 动作组合成模型可调用的能力。参数说明与调用校验共用官方目录。</div>
+      <div id="tsGroups"></div>
     </section>
 <section id="section-whitelist" data-page="access" class="card span-all">
       <h2>白名单 / 管理员</h2>
@@ -2608,6 +2657,26 @@ button:active:not(:disabled) {
           <button id="slangModalDirectConfirm" class="small">直接确认（转正）</button>
           <button id="slangModalSendResearch" class="small">送 DSH 深度研究</button>
           <button id="slangModalCancel" class="small">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="personModalOverlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="personModalTitle" tabindex="-1">
+        <h3 id="personModalTitle">添加印象</h3>
+        <div class="meta" id="personModalWho" style="margin-bottom:6px"></div>
+        <label>印象内容 *</label>
+        <input type="text" id="personModalText" placeholder="第三人称短句，如：喜欢猫，养了一只叫豆豆的橘猫">
+        <label>类型</label>
+        <select id="personModalKind">
+          <option value="trait">性格/喜好</option>
+          <option value="topic">话题/在做的事</option>
+          <option value="fact">其它事实</option>
+        </select>
+        <div class="meta" id="personModalHint" style="margin-top:6px"></div>
+        <div class="row">
+          <button id="personModalSave" class="small">保存</button>
+          <button id="personModalCancel" class="small">取消</button>
         </div>
       </div>
     </div>
@@ -3315,6 +3384,10 @@ async function loadV2Config() {
     document.getElementById('v2ContextRecentLimit').value = ctx.recentLimit ?? 100;
     document.getElementById('v2ContextUnreadLimit').value = ctx.unreadLimit ?? 30;
     document.getElementById('v2ContextWindow').value = ctx.contextWindow ?? 20;
+    document.getElementById('v2ContextWakeMessageLimit').value = ctx.wakeMessageLimit ?? 12;
+    document.getElementById('v2ContextWakeRecentLimit').value = ctx.wakeRecentLimit ?? 10;
+    document.getElementById('v2ContextWakeMaxChars').value = ctx.wakeMaxChars ?? 9000;
+    document.getElementById('v2ContextFreshSession').checked = ctx.freshSessionPerWake !== false;
     const fb = c.feedback || {};
     document.getElementById('v2FeedbackMaxLength').value = fb.maxLength ?? 500;
     document.getElementById('v2FeedbackNotifyOwner').checked = fb.notifyOwnerOnError === true;
@@ -3398,7 +3471,11 @@ async function saveV2Config() {
     context: {
       recentLimit: Math.round(Number(document.getElementById('v2ContextRecentLimit').value) || 100),
       unreadLimit: Math.round(Number(document.getElementById('v2ContextUnreadLimit').value) || 30),
-      contextWindow: Math.round(Number(document.getElementById('v2ContextWindow').value) || 20)
+      contextWindow: Math.round(Number(document.getElementById('v2ContextWindow').value) || 20),
+      wakeMessageLimit: Math.min(100, Math.max(1, Math.round(Number(document.getElementById('v2ContextWakeMessageLimit').value) || 12))),
+      wakeRecentLimit: Math.min(20, Math.max(0, Math.round(Number(document.getElementById('v2ContextWakeRecentLimit').value) || 0))),
+      wakeMaxChars: Math.min(20000, Math.max(500, Math.round(Number(document.getElementById('v2ContextWakeMaxChars').value) || 9000))),
+      freshSessionPerWake: document.getElementById('v2ContextFreshSession').checked
     },
     feedback: {
       maxLength: Math.round(Number(document.getElementById('v2FeedbackMaxLength').value) || 500),
@@ -4251,6 +4328,387 @@ document.getElementById('slangConfigSave').addEventListener('click', async () =>
   if (r.ok) loadSlangConfig();
 });
 
+// ── 人物印象（按 QQ 号跨群共享的长期印象 / 聊过的话题） ────────────────────
+let personCache = [];
+let personSelected = new Set();
+let personActiveTab = 'people';
+let personModalQQ = '';
+let personModalFactId = '';
+let personToolsCache = { personQuery: true, personNote: true };
+let personStoreWritable = true;
+
+const PERSON_KIND_LABEL = { trait: '性格/喜好', topic: '话题', fact: '事实' };
+const PERSON_STATUS_LABEL = { candidate: '候选', confirmed: '已确认', rejected: '已拒绝' };
+const PERSON_STATUS_CLASS = { candidate: 'pill b', confirmed: 'pill g', rejected: 'pill r' };
+const PERSON_SOURCE_LABEL = { ai: 'AI 记录', auto: '自动提取', manual: '手动' };
+
+function personById(qq) { return personCache.find((p) => p.qq === qq) || null; }
+function personDisplayName(p) {
+  const names = (p.names || []).slice().sort((a, b) => (b.count || 0) - (a.count || 0));
+  return names.length ? names[0].name : '';
+}
+function personStatusHtml(status) {
+  return '<span class="' + (PERSON_STATUS_CLASS[status] || 'pill') + '">' + esc(PERSON_STATUS_LABEL[status] || status) + '</span>';
+}
+function personSourceLabel(f) { return PERSON_SOURCE_LABEL[f.source] || '自动提取'; }
+function personEvidenceHtml(f) {
+  const ev = Array.isArray(f.evidence) ? f.evidence : [];
+  if (!ev.length) return '<span class="meta">—</span>';
+  return ev.slice(-2).map((x) => '<span class="meta">' + esc(String(x.key || '')) + ' · ' + esc(String(x.name || '')) + '：' + esc(String(x.text || '').slice(0, 40)) + '</span>').join('<br>');
+}
+function personAge(iso) {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? fmtAgoMs(Date.now() - t) + '前' : '—';
+}
+function personSelectedKey(qq, factId) { return factId ? qq + '::' + factId : qq; }
+function personSearchText(p) {
+  return [p.qq, (p.names || []).map((n) => n.name).join(' '), (p.facts || []).map((f) => f.text).join(' ')].join(' ').toLowerCase();
+}
+function personFilteredPeople() {
+  const q = String(document.getElementById('personSearch').value || '').trim().toLowerCase();
+  return q ? personCache.filter((p) => personSearchText(p).includes(q)) : personCache;
+}
+function personFactRows(status) {
+  const rows = [];
+  for (const p of personFilteredPeople()) for (const f of (p.facts || [])) if (f.status === status) rows.push({ p, f });
+  return rows;
+}
+function personMergedContent(p, status = '') {
+  const facts = (p.facts || []).filter((f) => status ? f.status === status : f.status !== 'rejected');
+  return [...new Set(facts.map((f) => String(f.text || '').trim()).filter(Boolean))].join('；');
+}
+function setPersonMsg(text, ok = true) {
+  const el = document.getElementById('personMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = ok ? 'meta ok' : 'meta err';
+}
+function setPersonConfigMsg(text, ok = true) {
+  const el = document.getElementById('personConfigMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = ok ? 'meta ok' : 'meta err';
+}
+function personTabPanelId(tab) { return 'personPanel' + tab[0].toUpperCase() + tab.slice(1); }
+function personSelectAllId(tab) {
+  return tab === 'people' ? 'personSelectAllPeople' : tab === 'candidate' ? 'personSelectAllCandidate' : 'personSelectAllConfirmed';
+}
+function personKeysForTab(tab) {
+  if (tab === 'people') return personFilteredPeople().map((p) => personSelectedKey(p.qq, ''));
+  return personFactRows(tab).map(({ p, f }) => personSelectedKey(p.qq, f.id));
+}
+function setPersonTab(tab) {
+  personActiveTab = tab;
+  document.querySelectorAll('.person-tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.personTab === tab));
+  document.querySelectorAll('.person-panel').forEach((panel) => panel.classList.toggle('active', panel.id === personTabPanelId(tab)));
+  renderPersonPanel();
+}
+function updatePersonSelectAll() {
+  const el = document.getElementById(personSelectAllId(personActiveTab));
+  if (!el) return;
+  const keys = personKeysForTab(personActiveTab);
+  el.checked = keys.length > 0 && keys.every((k) => personSelected.has(k));
+  el.indeterminate = keys.some((k) => personSelected.has(k)) && !el.checked;
+}
+function personRowHtmlForPeople(p) {
+  const key = personSelectedKey(p.qq, '');
+  const confirmed = (p.facts || []).filter((f) => f.status === 'confirmed').length;
+  const candidate = (p.facts || []).filter((f) => f.status === 'candidate').length;
+  const groups = (p.groups || []).map((g) => g.name ? esc(g.name) : esc(g.id)).join('、');
+  return '<tr>'
+    + '<td><input type="checkbox" data-person-select="' + esc(key) + '"' + (personSelected.has(key) ? ' checked' : '') + '></td>'
+    + '<td><b>' + esc(p.qq) + '</b></td>'
+    + '<td>' + (personDisplayName(p) ? esc(personDisplayName(p)) : '<span class="meta">未知昵称</span>')
+      + (p.names && p.names.length > 1 ? '<br><span class="meta">' + esc(p.names.map((n) => n.name).join(' / ')) + '</span>' : '') + '</td>'
+    + '<td style="min-width:240px;max-width:560px;white-space:normal;overflow-wrap:anywhere">' + esc(personMergedContent(p))
+      + (candidate ? '<br><span class="meta">包含候选内容，确认后才供 AI 使用。</span>' : '') + '</td>'
+    + '<td>' + (groups || '<span class="meta">—</span>')
+      + '<br><span class="meta">' + (p.groups || []).length + ' 个会话</span></td>'
+    + '<td>' + confirmed + '</td>'
+    + '<td>' + (candidate ? '<span class="pill b">' + candidate + '</span>' : '0') + '</td>'
+    + '<td>' + esc(personAge(p.lastSeenAt)) + '</td>'
+    + '<td class="row">'
+      + '<button class="small" data-person-act="add" data-person-qq="' + esc(p.qq) + '">加印象</button>'
+      + '<button class="small danger" data-person-act="del-person" data-person-qq="' + esc(p.qq) + '">删</button>'
+    + '</td></tr>';
+}
+function personRowHtmlForFact(p, f, status) {
+  const key = personSelectedKey(p.qq, f.id);
+  const actions = [];
+  if (status === 'candidate') {
+    actions.push('<button class="small" data-person-act="confirm" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">确认</button>');
+    actions.push('<button class="small" data-person-act="edit" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">编辑</button>');
+    actions.push('<button class="small" data-person-act="reject" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">拒绝</button>');
+  } else {
+    actions.push('<button class="small" data-person-act="edit" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">编辑</button>');
+    actions.push('<button class="small" data-person-act="restore" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">撤回为候选</button>');
+  }
+  actions.push('<button class="small danger" data-person-act="del-fact" data-person-qq="' + esc(p.qq) + '" data-person-fact="' + esc(f.id) + '">删</button>');
+  return '<tr>'
+    + '<td><input type="checkbox" data-person-select="' + esc(key) + '"' + (personSelected.has(key) ? ' checked' : '') + '></td>'
+    + '<td><b>' + esc(personDisplayName(p) || p.qq) + '</b><br><span class="meta">' + esc(p.qq) + '</span></td>'
+    + '<td>' + esc(f.text) + '</td>'
+    + '<td>' + esc(PERSON_KIND_LABEL[f.kind] || '事实') + '<br>' + personStatusHtml(f.status) + '</td>'
+    + '<td>' + esc(personSourceLabel(f)) + (Number(f.count) > 1 ? ' ×' + esc(f.count) : '') + '<br><span class="meta">' + esc(personAge(f.lastAt)) + '</span></td>'
+    + '<td>' + personEvidenceHtml(f) + '</td>'
+    + '<td class="row">' + actions.join('') + '</td></tr>';
+}
+function renderPersonPanel() {
+  const tab = personActiveTab;
+  const status = tab === 'candidate' ? 'candidate' : tab === 'confirmed' ? 'confirmed' : '';
+  const containerId = tab === 'people' ? 'personListPeople' : tab === 'candidate' ? 'personListCandidate' : 'personListConfirmed';
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  const empty = '<div class="meta" style="padding:8px">' + (tab === 'people'
+    ? '还没有人物档案：等 AI 用 qq_person_note 记、桥接自动提取，或在上方手动添加。'
+    : (tab === 'candidate' ? '暂无候选印象' : '暂无已确认印象，AI 聊天时也就用不上跨群记忆。')) + '</div>';
+  let html = '';
+  if (tab === 'people') {
+    const list = personFilteredPeople();
+    if (!list.length) { box.innerHTML = empty; updatePersonSelectAll(); return; }
+    html += '<div class="meta" style="padding:6px 8px">共 ' + list.length + ' 人（按最近活跃排序）</div>';
+    html += '<table><tr><th>选择</th><th>QQ</th><th>昵称</th><th>合并内容</th><th>出现过的会话</th><th>已确认</th><th>候选</th><th>最近活跃</th><th>操作</th></tr>';
+    for (const p of list) html += personRowHtmlForPeople(p);
+    box.innerHTML = html + '</table>';
+  } else {
+    const rows = personFactRows(status);
+    if (!rows.length) { box.innerHTML = empty; updatePersonSelectAll(); return; }
+    const people = personFilteredPeople().filter((p) => (p.facts || []).some((f) => f.status === status));
+    html += '<div class="meta" style="padding:6px 8px">共 ' + people.length + ' 人，' + rows.length + ' 条内容已按人合并</div>';
+    for (const p of people) {
+      const facts = (p.facts || []).filter((f) => f.status === status);
+      html += '<div data-person-group="' + esc(p.qq) + '" style="padding:12px;margin:8px 0;border:1px solid var(--border);border-radius:8px">'
+        + '<b>' + esc(personDisplayName(p) || p.qq) + '</b> <span class="meta">QQ ' + esc(p.qq) + '</span>'
+        + '<p style="white-space:normal;overflow-wrap:anywhere">' + esc(personMergedContent(p, status)) + '</p>'
+        + '<details><summary>查看原条目、证据与审核操作（' + facts.length + ' 条）</summary>'
+        + '<table><tr><th>选择</th><th>人物</th><th>印象 / 话题</th><th>类型</th><th>来源</th><th>来自（原文证据，仅控制台可见）</th><th>操作</th></tr>';
+      for (const f of facts) html += personRowHtmlForFact(p, f, status);
+      html += '</table></details></div>';
+    }
+    box.innerHTML = html;
+  }
+  bindPersonActions(box);
+  updatePersonSelectAll();
+}
+function bindPersonActions(box) {
+  box.querySelectorAll('[data-person-select]').forEach((cb) => cb.addEventListener('change', () => {
+    const key = cb.dataset.personSelect;
+    if (cb.checked) personSelected.add(key); else personSelected.delete(key);
+    updatePersonSelectAll();
+  }));
+  box.querySelectorAll('[data-person-act]').forEach((btn) => btn.addEventListener('click', async () => {
+    const act = btn.dataset.personAct;
+    const qq = btn.dataset.personQq;
+    const factId = btn.dataset.personFact || '';
+    if (act === 'add') { openPersonModal(qq, ''); return; }
+    if (act === 'edit') { openPersonModal(qq, factId); return; }
+    if (act === 'del-person') {
+      if (!confirm('确定删除 QQ ' + qq + ' 的全部人物档案与印象？此操作不可恢复！')) return;
+      const r = await api('/api/persons/' + qq, 'DELETE', {});
+      setPersonMsg(r.ok ? '✅ 已删除该人物档案' : ('❌ ' + (r.error || '失败')), r.ok);
+      if (r.ok) { personSelected.delete(personSelectedKey(qq, '')); refreshPersons(); }
+      return;
+    }
+    if (act === 'del-fact') {
+      if (!confirm('确定删除这条印象？')) return;
+      const r = await api('/api/persons/' + qq + '/facts/' + encodeURIComponent(factId), 'DELETE', {});
+      setPersonMsg(r.ok ? '✅ 已删除' : ('❌ ' + (r.error || '失败')), r.ok);
+      if (r.ok) { personSelected.delete(personSelectedKey(qq, factId)); refreshPersons(); }
+      return;
+    }
+    const targetStatus = act === 'confirm' ? 'confirmed' : act === 'reject' ? 'rejected' : act === 'restore' ? 'candidate' : '';
+    if (!targetStatus) return;
+    const r = await api('/api/persons/' + qq + '/facts/' + encodeURIComponent(factId), 'POST', { status: targetStatus });
+    if (!r.ok) alert(r.error || '操作失败');
+    if (r.ok) personSelected.delete(personSelectedKey(qq, factId));
+    setPersonMsg(r.ok ? '✅ 已' + (act === 'confirm' ? '确认' : act === 'reject' ? '拒绝' : '撤回') : ('❌ ' + (r.error || '失败')), r.ok);
+    refreshPersons();
+  }));
+}
+async function refreshPersons() {
+  try {
+    const r = await api('/api/persons');
+    personCache = r.entries || [];
+    personStoreWritable = r.writable !== false;
+    personToolsCache = r.tools || personToolsCache;
+    const counts = r.counts || { total: personCache.length, candidate: 0, confirmed: 0 };
+    const hint = personStoreWritable ? ''
+      : ' ⚠️ 档案文件读取失败，当前处于只读降级：改动不会落盘，请修好后重启桥接。';
+    document.getElementById('personStats').textContent = '人物 ' + counts.total + ' 位 · 已确认印象 ' + counts.confirmed + ' 条 · 候选 ' + counts.candidate + ' 条。' + hint;
+    renderPersonPanel();
+  } catch (e) {
+    const box = document.getElementById('personListPeople');
+    if (box) box.innerHTML = '<span class="meta">加载失败</span>';
+  }
+}
+function loadPersonConfig() {
+  api('/api/persons').then((r) => {
+    const c = r.config || {};
+    document.getElementById('personEnabled').checked = c.enabled !== false;
+    document.getElementById('personAutoExtract').checked = c.autoExtract !== false;
+    document.getElementById('personInject').checked = c.inject !== false;
+    document.getElementById('personExtractMin').value = c.extractMinMessages ?? 20;
+    document.getElementById('personCooldown').value = c.extractCooldownMs ?? 600000;
+    document.getElementById('personInjectPersons').value = c.injectMaxPersons ?? 6;
+    document.getElementById('personInjectFacts').value = c.injectMaxFactsPerPerson ?? 4;
+    document.getElementById('personNotePerHour').value = c.notePerHour ?? 30;
+    const t = r.tools || { personQuery: true, personNote: true };
+    document.getElementById('personToolQuery').checked = t.personQuery !== false;
+    document.getElementById('personToolNote').checked = t.personNote !== false;
+  }).catch(() => {});
+}
+function openPersonModal(qq, factId) {
+  const p = personById(qq);
+  if (!p) return;
+  personModalQQ = qq;
+  personModalFactId = factId || '';
+  const fact = factId ? (p.facts || []).find((f) => f.id === factId) : null;
+  const who = personDisplayName(p) ? personDisplayName(p) + '（QQ ' + qq + '）' : 'QQ ' + qq;
+  document.getElementById('personModalTitle').textContent = fact ? '编辑印象' : '给 TA 加一条印象';
+  document.getElementById('personModalWho').textContent = who;
+  document.getElementById('personModalText').value = fact ? fact.text : '';
+  document.getElementById('personModalKind').value = fact ? (fact.kind || 'fact') : 'fact';
+  document.getElementById('personModalHint').textContent = '写长期有效、下次聊天用得上的信息；手机号/住址/身份证/密码等隐私内容会被拒绝。';
+  document.getElementById('personModalOverlay').classList.add('open');
+}
+function closePersonModal() {
+  document.getElementById('personModalOverlay').classList.remove('open');
+  personModalQQ = '';
+  personModalFactId = '';
+}
+document.querySelectorAll('.person-tab').forEach((btn) => btn.addEventListener('click', () => setPersonTab(btn.dataset.personTab)));
+document.getElementById('personSearch').addEventListener('input', renderPersonPanel);
+document.getElementById('personRefresh').addEventListener('click', () => { refreshPersons(); setPersonMsg('已刷新'); });
+document.getElementById('personExtract').addEventListener('click', async () => {
+  const button = document.getElementById('personExtract');
+  button.disabled = true;
+  setPersonMsg('正在分析聊天消息，结果会显示在候选印象中…');
+  try {
+    const r = await api('/api/persons/extract', 'POST', {});
+    setPersonMsg(r.ok
+      ? '✅ 已分析 ' + (r.analyzed || 0) + ' 条消息，新增 ' + (r.added || 0) + ' 条候选、更新 ' + (r.updated || 0) + ' 条。' + ((r.added || r.updated) ? '' : '本批没有新的可用印象或话题。')
+      : ('❌ ' + (r.error || '学习失败，请重试')), r.ok);
+    await refreshPersons();
+  } catch (error) {
+    setPersonMsg('❌ ' + (error.message || '学习请求失败，请重试'), false);
+  } finally {
+    button.disabled = false;
+  }
+});
+document.querySelectorAll('[id^="personSelectAll"]').forEach((el) => el.addEventListener('change', (e) => {
+  for (const key of personKeysForTab(personActiveTab)) {
+    if (e.target.checked) personSelected.add(key); else personSelected.delete(key);
+  }
+  renderPersonPanel();
+}));
+document.getElementById('personBatchDelete').addEventListener('click', async () => {
+  const qqs = [...personSelected].filter((k) => !k.includes('::'));
+  if (!qqs.length) { alert('请先勾选要删除的人物'); return; }
+  if (!confirm('确定删除所选 ' + qqs.length + ' 个人的全部档案与印象？此操作不可恢复！')) return;
+  const r = await api('/api/persons/batch-delete', 'POST', { qqs });
+  setPersonMsg(r.ok ? '✅ 已删除 ' + r.removed + ' 位' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) { personSelected.clear(); refreshPersons(); }
+});
+function personSelectedFactItems(status) {
+  return [...personSelected]
+    .filter((k) => k.includes('::'))
+    .map((k) => { const [qq, factId] = k.split('::'); return { qq, factId }; })
+    .filter((it) => {
+      const p = personById(it.qq);
+      const f = p && (p.facts || []).find((x) => x.id === it.factId);
+      return f && f.status === status;
+    });
+}
+async function personBatchStatus(fromStatus, toStatus, actionLabel) {
+  const items = personSelectedFactItems(fromStatus);
+  if (!items.length) { alert('请先勾选要' + actionLabel + '的' + (fromStatus === 'candidate' ? '候选' : '已确认') + '印象'); return; }
+  if (!confirm('确定' + actionLabel + ' ' + items.length + ' 条印象？')) return;
+  const r = await api('/api/persons/batch-status', 'POST', { items, status: toStatus });
+  setPersonMsg(r.ok ? '✅ 已' + actionLabel + ' ' + r.changed + ' 条' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) { personSelected.clear(); refreshPersons(); }
+}
+document.getElementById('personBatchConfirm').addEventListener('click', () => personBatchStatus('candidate', 'confirmed', '确认'));
+document.getElementById('personBatchReject').addEventListener('click', () => personBatchStatus('candidate', 'rejected', '拒绝'));
+document.getElementById('personBatchRestore').addEventListener('click', () => personBatchStatus('confirmed', 'candidate', '撤回'));
+async function personBatchDeleteFacts(status) {
+  const items = personSelectedFactItems(status);
+  if (!items.length) { alert('请先勾选要删除的印象'); return; }
+  if (!confirm('确定删除 ' + items.length + ' 条印象？此操作不可恢复！')) return;
+  let okCount = 0;
+  for (const it of items) {
+    const r = await api('/api/persons/' + it.qq + '/facts/' + encodeURIComponent(it.factId), 'DELETE', {});
+    if (r.ok) okCount += 1;
+  }
+  setPersonMsg('✅ 已删除 ' + okCount + '/' + items.length + ' 条');
+  personSelected.clear();
+  refreshPersons();
+}
+document.getElementById('personBatchDeleteFacts').addEventListener('click', () => personBatchDeleteFacts('candidate'));
+document.getElementById('personBatchDeleteConfirmed').addEventListener('click', () => personBatchDeleteFacts('confirmed'));
+document.getElementById('personClearCandidate').addEventListener('click', async () => {
+  if (!confirm('确定清空全部候选印象？')) return;
+  const r = await api('/api/persons/clear', 'POST', { status: 'candidate' });
+  setPersonMsg(r.ok ? '✅ 已清空候选 ' + r.removedFacts + ' 条' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) { personSelected.clear(); refreshPersons(); }
+});
+document.getElementById('personClearConfirmed').addEventListener('click', async () => {
+  if (!confirm('确定清空全部已确认印象？AI 将立即失去这些跨群记忆。')) return;
+  const r = await api('/api/persons/clear', 'POST', { status: 'confirmed' });
+  setPersonMsg(r.ok ? '✅ 已清空已确认 ' + r.removedFacts + ' 条' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) { personSelected.clear(); refreshPersons(); }
+});
+document.getElementById('personAdd').addEventListener('click', async () => {
+  const qq = document.getElementById('personNewQQ').value.trim();
+  const name = document.getElementById('personNewName').value.trim();
+  const kind = document.getElementById('personNewKind').value;
+  const text = document.getElementById('personNewText').value.trim();
+  if (!/^\d{1,12}$/.test(qq)) { alert('请填写合法的 QQ 号（纯数字）'); return; }
+  const r = await api('/api/persons/' + qq, 'POST', { name, text, kind });
+  setPersonMsg(r.ok ? '✅ 已保存' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) {
+    document.getElementById('personNewQQ').value = '';
+    document.getElementById('personNewName').value = '';
+    document.getElementById('personNewText').value = '';
+    refreshPersons();
+  }
+});
+document.getElementById('personModalSave').addEventListener('click', async () => {
+  if (!personModalQQ) return;
+  const text = document.getElementById('personModalText').value.trim();
+  const kind = document.getElementById('personModalKind').value;
+  if (!text) { alert('印象内容不能为空'); return; }
+  const r = personModalFactId
+    ? await api('/api/persons/' + personModalQQ + '/facts/' + encodeURIComponent(personModalFactId), 'PATCH', { text, kind })
+    : await api('/api/persons/' + personModalQQ + '/facts', 'POST', { text, kind });
+  if (!r.ok) alert(r.error || '保存失败');
+  setPersonMsg(r.ok ? '✅ 已保存' : ('❌ ' + (r.error || '失败')), r.ok);
+  closePersonModal();
+  refreshPersons();
+});
+document.getElementById('personModalCancel').addEventListener('click', closePersonModal);
+document.getElementById('personModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'personModalOverlay') closePersonModal(); });
+document.getElementById('personConfigSave').addEventListener('click', async () => {
+  const payload = {
+    personMemory: {
+      enabled: document.getElementById('personEnabled').checked,
+      autoExtract: document.getElementById('personAutoExtract').checked,
+      inject: document.getElementById('personInject').checked,
+      extractMinMessages: Number(document.getElementById('personExtractMin').value) || 20,
+      extractCooldownMs: Number(document.getElementById('personCooldown').value) || 600000,
+      injectMaxPersons: Number(document.getElementById('personInjectPersons').value) || 6,
+      injectMaxFactsPerPerson: Number(document.getElementById('personInjectFacts').value) || 4,
+      notePerHour: Number(document.getElementById('personNotePerHour').value) || 30
+    },
+    tools: {
+      personQuery: document.getElementById('personToolQuery').checked,
+      personNote: document.getElementById('personToolNote').checked
+    }
+  };
+  const r = await api('/api/persons/config', 'POST', payload);
+  setPersonConfigMsg(r.ok ? '✅ 已保存（工具开关需重启 DSH 后才刷新 schema）' : ('❌ ' + (r.error || '失败')), r.ok);
+  if (r.ok) loadPersonConfig();
+});
+
 function loadSecurity() {
   api('/api/security').then(r => {
     document.getElementById('secInterceptNotify').checked = r.security?.interceptNotify !== false;
@@ -4315,10 +4773,11 @@ const consolePages = {
   'social-v2': ['二代仿真', '自主参与，恰到好处。', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
   'social-v1': ['一代仿真', '为自然对话，设定合适的节奏。', '调整参与概率、活跃周期和分条发送；所有配置项完整保留。'],
   slang: ['黑话词库', '读懂群聊里的，言外之意。', '从候选到确认，让 AI 逐渐熟悉大家的表达习惯。'],
+  persons: ['人物印象', '同一个人，换个群也认得。', '按 QQ 号跨群保存长期印象与聊过的话题：AI 记的直接生效，自动提取的由你确认后生效。'],
   usage: ['令牌与花费', '每一次思考，都算得清楚。', '实时查看 AI 的 token 消耗与花费，可下钻到每个群、每个好友、每一轮对话。'],
   access: ['访问与安全', '明确边界，安心连接。', '管理允许对话的对象、管理员权限与控制台访问凭证。'],
   operations: ['调试与运维', '让桥接，始终井然有序。', '测试消息、引导 AI，或维护桥接进程与会话工作区。'],
-  reference: ['工具参考', '每一种能力，都清晰可见。', '查看桥接提供给 DSH 的 MCP 工具与用途。']
+  reference: ['MCP 工具管理', '工具、动作与参数，集中管理。', '配置扩展工具、查看参数、校验调用并维护提示词。']
 };
 let currentConsolePage = 'overview';
 let toastTimer;
@@ -4492,6 +4951,25 @@ slangOverlay.addEventListener('keydown', event => {
   if (event.key === 'Tab') {
     const controls = [...slangOverlay.querySelectorAll('button,input,textarea,select')].filter(el => !el.disabled && el.getClientRects().length);
     const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+});
+// 人物印象弹窗：与黑话弹窗同一套可访问性处理（Esc 关闭 + Tab 循环）。
+const personOverlay = document.getElementById('personModalOverlay');
+const personModalObserver = new MutationObserver(() => {
+  if (personOverlay.classList.contains('open')) {
+    document.getElementById('personModalText').focus();
+  }
+});
+personModalObserver.observe(personOverlay, { attributes: true, attributeFilter: ['class'] });
+personOverlay.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') { event.preventDefault(); closePersonModal(); }
+  if (event.key === 'Tab') {
+    const controls = [...personOverlay.querySelectorAll('button,input,select')].filter((el) => !el.disabled && el.getClientRects().length);
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (!first || !last) return;
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
@@ -4932,8 +5410,8 @@ document.getElementById('usageClear').addEventListener('click', async () => {
 
 setConsolePage(location.hash.slice(1), { updateHash:false });
 
-refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSocialForm(); loadV2Config(); refreshV2Activity(); loadV2ToolLog(); loadV2SessionOptions(); refreshSocialStatus(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent();
-setInterval(() => { refresh(); refreshSessions(); refreshPending(); refreshSocialStatus(); refreshSlang(); }, 3000);
+refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSocialForm(); loadV2Config(); refreshV2Activity(); loadV2ToolLog(); loadV2SessionOptions(); refreshSocialStatus(); refreshSlang(); loadSlangConfig(); refreshPersons(); loadPersonConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent();
+setInterval(() => { refresh(); refreshSessions(); refreshPending(); refreshSocialStatus(); refreshSlang(); refreshPersons(); }, 3000);
 // 用量看板只在本页可见时轮询：既保证「实时」，又不让其它页白白多打两份接口。
 setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); refreshUsageChart(); refreshUsageRecent(); }, 3000);
 // 主题切换（纯前端，不发任何请求；选择写入 localStorage，未选择时跟随系统）
@@ -4960,6 +5438,20 @@ setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); 
   media.addEventListener('change', function (event) {
     if (!stored()) apply(event.matches ? 'dark' : 'light', false);
   });
+})();
+</script>
+
+<script>
+// 静态资源同样走控制台鉴权，不开放匿名管理页面入口。
+(() => {
+  const token = encodeURIComponent(localStorage.getItem('consoleToken') || '');
+  const style = document.createElement('link');
+  style.rel = 'stylesheet'; style.href = '/console-tools.css?token=' + token;
+  document.head.append(style);
+  const script = document.createElement('script');
+  script.src = '/console-tools.js?token=' + token;
+  script.onerror = () => { document.getElementById('tsGroups').textContent = '工具管理模块加载失败，请刷新页面。'; };
+  document.body.append(script);
 })();
 </script>
 </body>

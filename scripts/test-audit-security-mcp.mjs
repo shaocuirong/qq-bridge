@@ -5,6 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { test } from 'node:test';
 import { z } from 'zod';
+import { registerToolSuites } from '../src/mcp-tool-suites.js';
 
 function loadWebTools(safeFetch) {
   const tools = new Map();
@@ -59,8 +60,18 @@ function loadSnowlumaTools(fetchImpl, fixtureConfig = null) {
   const tools = new Map();
   // vm 里没有 ESM 的 import.meta，把模块顶部的 __dirname 推导整段替换成固定值。
   const source = fs.readFileSync(new URL('../src/mcp-snowluma-safe.js', import.meta.url), 'utf8')
+    // 先处理具体 import，再统一剥掉其余 import（顺序反了的话通用规则会先吃掉这一行）。
+    // 为什么换成桩：vm 上下文里没有模块系统，也**绝不能**让自愈去读真实
+    // state/social-v2.json（测试不许碰用户运行时状态）。桩成「取不到当前代令牌」后，
+    // agentApi 永远走原来那条「原样抛错」的路径 —— 而这几条断言
+    // （ok:false 必须变工具错误 / 旧只读工具 fail-closed）测的正是那条路径。
+    .replace(
+      /^import \{ readAgentTokenFromState, isStaleTokenError \} from '\.\/mcp-agent-auth\.js';\r?\n/gm,
+      'const readAgentTokenFromState = () => null;\nconst isStaleTokenError = () => false;\n'
+    )
     .replace(/^import .*;\r?\n/gm, '')
     .replace("const __dirname = path.dirname(fileURLToPath(import.meta.url));", "const __dirname = '/fixture/src';")
+    .replace('export { server };', '')
     .replace('await server.connect(new StdioServerTransport());', 'server.connect(new StdioServerTransport());');
   class McpServer {
     constructor() { this.tool = (name, description, schema, callback) => tools.set(name, { schema, callback }); }
@@ -92,6 +103,7 @@ function loadSnowlumaTools(fetchImpl, fixtureConfig = null) {
     fs: fixtureFs,
     SENSITIVE_RE: { test: () => false },
     serializeModelData: (value) => JSON.stringify(value),
+    registerToolSuites,
   });
   return async (name, arguments_ = {}) => {
     const tool = tools.get(name);

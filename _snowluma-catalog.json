@@ -7,7 +7,59 @@
    "group_id",
    "fid",
    "notice_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "fid",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "notice_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "fid": {
+     "type": "string"
+    },
+    "notice_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "_get_friend_dress",
@@ -15,7 +67,37 @@
   "summary": "获取指定 QQ 号正在使用的个性装扮（挂件/名片/来电/输入状态等）",
   "params": [
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "目标 QQ 号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "目标 QQ 号",
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "_get_group_notice",
@@ -23,7 +105,37 @@
   "summary": "获取群公告",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "_get_model_show",
@@ -31,13 +143,44 @@
   "summary": "获取机型展示（兼容 mock）",
   "params": [
    "model"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "model",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "model": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "_mark_all_as_read",
   "readOnly": false,
   "summary": "标记全部已读",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "_send_group_notice",
@@ -53,19 +196,203 @@
    "is_show_edit_card",
    "tip_window_type",
    "confirm_required"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "content",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "公告正文"
+   },
+   {
+    "name": "image",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "image",
+    "desc": "可选公告图片（本地路径、URL 或 base64）"
+   },
+   {
+    "name": "pinned",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1
+    },
+    "default": 0,
+    "desc": "是否置顶：1=置顶，0=不置顶"
+   },
+   {
+    "name": "type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer"
+    },
+    "desc": "发布类型：1=普通公告，20=新成员公告；建议使用 send_to_new_members"
+   },
+   {
+    "name": "send_to_new_members",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "desc": "是否在成员新加入群时发送（与 type=20 等价）"
+   },
+   {
+    "name": "is_show_edit_card",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1
+    },
+    "default": 1,
+    "desc": "是否引导群成员修改群昵称：1=是，0=否"
+   },
+   {
+    "name": "tip_window_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1
+    },
+    "default": 1,
+    "desc": "弹窗展示：0=开启弹窗，1=关闭弹窗（QQ 原始字段为反向语义）"
+   },
+   {
+    "name": "confirm_required",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1
+    },
+    "default": 1,
+    "desc": "是否需要群成员确认收到：1=是，0=否"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "content": {
+     "type": "string",
+     "minLength": 1,
+     "description": "公告正文"
+    },
+    "image": {
+     "type": "string",
+     "description": "可选公告图片（本地路径、URL 或 base64）",
+     "default": "",
+     "x-role": "image"
+    },
+    "pinned": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1,
+     "description": "是否置顶：1=置顶，0=不置顶",
+     "default": 0
+    },
+    "type": {
+     "type": "integer",
+     "description": "发布类型：1=普通公告，20=新成员公告；建议使用 send_to_new_members"
+    },
+    "send_to_new_members": {
+     "type": "boolean",
+     "description": "是否在成员新加入群时发送（与 type=20 等价）"
+    },
+    "is_show_edit_card": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1,
+     "description": "是否引导群成员修改群昵称：1=是，0=否",
+     "default": 1
+    },
+    "tip_window_type": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1,
+     "description": "弹窗展示：0=开启弹窗，1=关闭弹窗（QQ 原始字段为反向语义）",
+     "default": 1
+    },
+    "confirm_required": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1,
+     "description": "是否需要群成员确认收到：1=是，0=否",
+     "default": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "content"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [
+   "type must be 1 (regular) or 20 (new members)",
+   "send_to_new_members conflicts with type"
+  ],
+  "category": "扩展"
  },
  {
   "name": "_set_model_show",
   "readOnly": false,
   "summary": "设置机型展示（占位）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": ".get_word_slices",
   "readOnly": true,
   "summary": "分词（未实现）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "add_custom_face",
@@ -73,33 +400,208 @@
   "summary": "添加收藏表情",
   "params": [
    "file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "image",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "image"
+    }
+   },
+   "required": [
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
+ },
+ {
+  "name": "add_group_tag",
+  "readOnly": false,
+  "summary": "向某个群分类添加资料标签",
+  "params": [
+   "group_class",
+   "name"
+  ],
+  "parameters": [
+   {
+    "name": "group_class",
+    "type": "int",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    }
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_class": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_class",
+    "name"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "bot_exit",
   "readOnly": false,
   "summary": "退出机器人",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "can_send_image",
   "readOnly": true,
-  "params": []
+  "summary": "",
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "信息"
  },
  {
   "name": "can_send_record",
   "readOnly": true,
-  "params": []
+  "summary": "",
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "信息"
  },
  {
   "name": "cancel_group_album_media_like",
   "readOnly": false,
+  "summary": "",
   "params": [
    "group_id",
    "album_id",
    "batch_id",
    "lloc"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "batch_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "lloc",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "batch_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "lloc": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "batch_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "cancel_group_todo",
@@ -108,25 +610,99 @@
   "params": [
    "group_id",
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "check_url_safely",
   "readOnly": true,
   "summary": "检查链接安全性",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "clean_cache",
   "readOnly": false,
   "summary": "清理缓存",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "clean_stream_temp_file",
   "readOnly": false,
   "summary": "清理流式传输临时文件(仅清理 stream 上传/下载目录)",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "click_inline_keyboard_button",
@@ -135,8 +711,95 @@
   "params": [
    "group_id",
    "bot_appid",
-   "msg_seq"
-  ]
+   "msg_seq",
+   "button_id",
+   "callback_data"
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "bot_appid",
+    "type": "uint",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "msg_seq",
+    "type": "uint",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "button_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "callback_data",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "bot_appid": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "msg_seq": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "button_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "callback_data": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id",
+    "bot_appid",
+    "msg_seq",
+    "button_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "comment_qzone",
@@ -147,7 +810,89 @@
    "content",
    "target_uin",
    "images"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "tid",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说 tid"
+   },
+   {
+    "name": "content",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "评论内容"
+   },
+   {
+    "name": "target_uin",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "说说所属 QQ 号，省略则为机器人自己"
+   },
+   {
+    "name": "images",
+    "type": "string[]",
+    "required": false,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "desc": "图片数组（可选），支持 file:// http:// base64://；自动上传"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tid": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说 tid"
+    },
+    "content": {
+     "type": "string",
+     "minLength": 1,
+     "description": "评论内容"
+    },
+    "target_uin": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "说说所属 QQ 号，省略则为机器人自己",
+     "x-role": "user_id"
+    },
+    "images": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "图片数组（可选），支持 file:// http:// base64://；自动上传"
+    }
+   },
+   "required": [
+    "tid",
+    "content"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "complete_group_todo",
@@ -156,13 +901,71 @@
   "params": [
    "group_id",
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "create_collection",
   "readOnly": false,
   "summary": "创建收藏（未实现）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "create_flash_task",
@@ -172,7 +975,49 @@
    "files",
    "name",
    "thumb_path"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "files",
+    "type": "raw",
+    "required": false,
+    "schema": {},
+    "desc": "路径、{ file, name }，或它们的数组"
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "thumb_path",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "files": {
+     "description": "路径、{ file, name }，或它们的数组"
+    },
+    "name": {
+     "type": "string"
+    },
+    "thumb_path": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "create_group_file_folder",
@@ -182,16 +1027,134 @@
    "group_id",
    "name",
    "parent_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "parent_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "/"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "parent_id": {
+     "type": "string",
+     "default": "/"
+    }
+   },
+   "required": [
+    "group_id",
+    "name"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "del_group_album_media",
   "readOnly": false,
+  "summary": "删除群相册图片或视频",
   "params": [
    "group_id",
    "album_id",
    "lloc"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "lloc",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "图片长定位标识，或视频 id"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "lloc": {
+     "type": "string",
+     "minLength": 1,
+     "description": "图片长定位标识，或视频 id"
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "lloc"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "delete_custom_face",
@@ -199,7 +1162,33 @@
   "summary": "删除收藏表情",
   "params": [
    "emoji_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "emoji_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "delete_essence_msg",
@@ -207,7 +1196,39 @@
   "summary": "移除精华消息",
   "params": [
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "delete_flash_file",
@@ -215,7 +1236,33 @@
   "summary": "删除闪传文件",
   "params": [
    "fileset_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "delete_friend",
@@ -224,7 +1271,50 @@
   "params": [
    "user_id",
    "block"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "block",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "user_id"
+    },
+    "block": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "好友"
  },
  {
   "name": "delete_group_file",
@@ -233,7 +1323,53 @@
   "params": [
    "group_id",
    "file_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "file_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "delete_group_file_folder",
@@ -242,7 +1378,51 @@
   "params": [
    "group_id",
    "folder_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "folder_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "folder_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "folder_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "delete_group_folder",
@@ -251,7 +1431,102 @@
   "params": [
    "group_id",
    "folder_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "folder_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "folder_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "folder_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
+ },
+ {
+  "name": "delete_group_tag",
+  "readOnly": false,
+  "summary": "从某个群分类移除资料标签",
+  "params": [
+   "group_class",
+   "name"
+  ],
+  "parameters": [
+   {
+    "name": "group_class",
+    "type": "int",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    }
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_class": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_class",
+    "name"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "delete_msg",
@@ -259,7 +1534,39 @@
   "summary": "撤回消息",
   "params": [
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
  },
  {
   "name": "delete_qzone_msg",
@@ -267,17 +1574,118 @@
   "summary": "删除一条说说（QQ 空间，按 tid）",
   "params": [
    "tid"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "tid",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说 tid（来自 get_qzone_msg_list / send_qzone_msg）"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tid": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说 tid（来自 get_qzone_msg_list / send_qzone_msg）"
+    }
+   },
+   "required": [
+    "tid"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "do_group_album_comment",
   "readOnly": false,
+  "summary": "",
   "params": [
    "group_id",
    "album_id",
    "lloc",
    "content"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "lloc",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "content",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "lloc": {
+     "type": "string",
+     "minLength": 1
+    },
+    "content": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "lloc",
+    "content"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "download_file",
@@ -286,8 +1694,65 @@
   "params": [
    "url",
    "base64",
-   "name"
-  ]
+   "name",
+   "headers"
+  ],
+  "parameters": [
+   {
+    "name": "url",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "base64",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "headers",
+    "type": "raw",
+    "required": false,
+    "schema": {}
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "url": {
+     "type": "string",
+     "default": ""
+    },
+    "base64": {
+     "type": "string",
+     "default": ""
+    },
+    "name": {
+     "type": "string",
+     "default": ""
+    },
+    "headers": {}
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "download_file_image_stream",
@@ -297,7 +1762,62 @@
    "file",
    "file_id",
    "chunk_size"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件路径(限 stream 临时目录)/ http(s) URL",
+    "role": "file"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件 ID(缓存的图片/语音 id)",
+    "role": "file_id"
+   },
+   {
+    "name": "chunk_size",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "分块大小(字节,默认 64KB)"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "文件路径(限 stream 临时目录)/ http(s) URL",
+     "x-role": "file"
+    },
+    "file_id": {
+     "type": "string",
+     "description": "文件 ID(缓存的图片/语音 id)",
+     "x-role": "file_id"
+    },
+    "chunk_size": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "分块大小(字节,默认 64KB)"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "download_file_record_stream",
@@ -307,7 +1827,62 @@
    "file",
    "file_id",
    "chunk_size"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件路径(限 stream 临时目录)/ http(s) URL",
+    "role": "file"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件 ID(缓存的图片/语音 id)",
+    "role": "file_id"
+   },
+   {
+    "name": "chunk_size",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "分块大小(字节,默认 64KB)"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "文件路径(限 stream 临时目录)/ http(s) URL",
+     "x-role": "file"
+    },
+    "file_id": {
+     "type": "string",
+     "description": "文件 ID(缓存的图片/语音 id)",
+     "x-role": "file_id"
+    },
+    "chunk_size": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "分块大小(字节,默认 64KB)"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "download_file_stream",
@@ -317,7 +1892,62 @@
    "file",
    "file_id",
    "chunk_size"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件路径(限 stream 临时目录)/ http(s) URL",
+    "role": "file"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件 ID(缓存的图片/语音 id)",
+    "role": "file_id"
+   },
+   {
+    "name": "chunk_size",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "分块大小(字节,默认 64KB)"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "文件路径(限 stream 临时目录)/ http(s) URL",
+     "x-role": "file"
+    },
+    "file_id": {
+     "type": "string",
+     "description": "文件 ID(缓存的图片/语音 id)",
+     "x-role": "file_id"
+    },
+    "chunk_size": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "分块大小(字节,默认 64KB)"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "download_fileset",
@@ -327,7 +1957,55 @@
    "fileset_id",
    "file_name",
    "file_index"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "file_name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "file_index",
+    "type": "number",
+    "required": false,
+    "schema": {
+     "type": "number"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "file_name": {
+     "type": "string"
+    },
+    "file_index": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "fetch_custom_face",
@@ -336,7 +2014,45 @@
   "params": [
    "count",
    "return_type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 10
+   },
+   {
+    "name": "return_type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "url"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 10
+    },
+    "return_type": {
+     "type": "string",
+     "default": "url"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "fetch_custom_face_detail",
@@ -344,7 +2060,32 @@
   "summary": "获取自定义表情详情",
   "params": [
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 48
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 48
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "fetch_emoji_like",
@@ -355,7 +2096,81 @@
    "emojiId",
    "count",
    "cookie"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "emojiId",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 10
+   },
+   {
+    "name": "cookie",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "emojiId": {
+     "type": "string",
+     "minLength": 1
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 10
+    },
+    "cookie": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "message_id",
+    "emojiId"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "fetch_face_entity",
@@ -364,7 +2179,52 @@
   "params": [
    "face_id",
    "refresh"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "face_id",
+    "type": "int",
+    "required": true,
+    "role": "face_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "QQ 系统表情编号"
+   },
+   {
+    "name": "refresh",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false,
+    "desc": "是否强制从 QQ 刷新目录"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "face_id": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "QQ 系统表情编号",
+     "x-role": "face_id"
+    },
+    "refresh": {
+     "type": "boolean",
+     "description": "是否强制从 QQ 刷新目录",
+     "default": false
+    }
+   },
+   "required": [
+    "face_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "系统表情"
  },
  {
   "name": "fetch_ptt_text",
@@ -372,7 +2232,39 @@
   "summary": "获取语音转文字结果",
   "params": [
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "fetch_super_face_id",
@@ -381,7 +2273,52 @@
   "params": [
    "face_id",
    "refresh"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "face_id",
+    "type": "int",
+    "required": true,
+    "role": "face_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "QQ 系统表情编号"
+   },
+   {
+    "name": "refresh",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false,
+    "desc": "是否强制从 QQ 刷新目录"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "face_id": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "QQ 系统表情编号",
+     "x-role": "face_id"
+    },
+    "refresh": {
+     "type": "boolean",
+     "description": "是否强制从 QQ 刷新目录",
+     "default": false
+    }
+   },
+   "required": [
+    "face_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "系统表情"
  },
  {
   "name": "fetch_sys_faces",
@@ -389,7 +2326,32 @@
   "summary": "获取 QQ 系统表情目录",
   "params": [
    "refresh"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "refresh",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false,
+    "desc": "是否强制从 QQ 刷新目录"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "refresh": {
+     "type": "boolean",
+     "description": "是否强制从 QQ 刷新目录",
+     "default": false
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "系统表情"
  },
  {
   "name": "forward_friend_single_msg",
@@ -398,7 +2360,55 @@
   "params": [
    "message_id",
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "message_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "forward_group_single_msg",
@@ -407,7 +2417,55 @@
   "params": [
    "message_id",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "message_id",
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "friend_poke",
@@ -416,7 +2474,50 @@
   "params": [
    "user_id",
    "target_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "target_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "target_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_ai_characters",
@@ -425,7 +2526,52 @@
   "params": [
    "group_id",
    "chat_type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "chat_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "chat_type": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_ai_record",
@@ -436,13 +2582,94 @@
    "character",
    "text",
    "chat_type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "character",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "text",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "chat_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "character": {
+     "type": "string",
+     "minLength": 1
+    },
+    "text": {
+     "type": "string",
+     "minLength": 1
+    },
+    "chat_type": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "character",
+    "text"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_clientkey",
   "readOnly": true,
   "summary": "获取 clientkey",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_collection_list",
@@ -451,7 +2678,53 @@
   "params": [
    "category",
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "category",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "收藏分类 ID；0 表示全部分类",
+    "default": 0
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 500
+    },
+    "desc": "最多返回的收藏数量",
+    "default": 50
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "category": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "收藏分类 ID；0 表示全部分类",
+     "default": 0
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 500,
+     "description": "最多返回的收藏数量",
+     "default": 50
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_cookies",
@@ -459,7 +2732,30 @@
   "summary": "获取 Cookies",
   "params": [
    "domain"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "domain",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "qun.qq.com"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "domain": {
+     "type": "string",
+     "default": "qun.qq.com"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_credentials",
@@ -467,13 +2763,44 @@
   "summary": "获取凭证",
   "params": [
    "domain"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "domain",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "qun.qq.com"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "domain": {
+     "type": "string",
+     "default": "qun.qq.com"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_csrf_token",
   "readOnly": true,
   "summary": "获取 CSRF 令牌",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_doubt_friends_add_request",
@@ -481,7 +2808,32 @@
   "summary": "获取可疑好友申请",
   "params": [
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 50
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 50
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_emoji_likes",
@@ -490,7 +2842,53 @@
   "params": [
    "message_id",
    "emoji_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "emoji_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "message_id",
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_essence_msg_list",
@@ -498,7 +2896,37 @@
   "summary": "获取精华消息列表",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_file",
@@ -507,7 +2935,47 @@
   "params": [
    "file_id",
    "file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "file_id"
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "file"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file_id": {
+     "type": "string",
+     "default": "",
+     "x-role": "file_id"
+    },
+    "file": {
+     "type": "string",
+     "default": "",
+     "x-role": "file"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_fileset_id",
@@ -515,7 +2983,35 @@
   "summary": "从 QQ 闪传分享码或官方分享链接获取 fileset_id",
   "params": [
    "share_code"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "share_code",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "QQ 闪传分享码，或 https://qfile.qq.com/q/... 官方分享链接"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "share_code": {
+     "type": "string",
+     "minLength": 1,
+     "description": "QQ 闪传分享码，或 https://qfile.qq.com/q/... 官方分享链接"
+    }
+   },
+   "required": [
+    "share_code"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_fileset_info",
@@ -523,7 +3019,33 @@
   "summary": "获取文件集信息",
   "params": [
    "fileset_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_flash_file_list",
@@ -531,7 +3053,33 @@
   "summary": "获取闪传文件列表",
   "params": [
    "fileset_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_flash_file_url",
@@ -541,21 +3089,110 @@
    "fileset_id",
    "file_name",
    "file_index"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "file_name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "file_index",
+    "type": "number",
+    "required": false,
+    "schema": {
+     "type": "number"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "file_name": {
+     "type": "string"
+    },
+    "file_index": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_forward_msg",
   "readOnly": true,
   "summary": "获取合并转发消息（id 或 message_id）",
   "params": [
-   "id"
-  ]
+   "id",
+   "message_id"
+  ],
+  "parameters": [
+   {
+    "name": "id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "message_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "message_id": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_friend_list",
   "readOnly": true,
   "summary": "获取好友列表",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "好友"
  },
  {
   "name": "get_friend_msg_history",
@@ -566,29 +3203,239 @@
    "message_id",
    "count",
    "reverse_order"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "message_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer"
+    },
+    "default": 0,
+    "role": "message_id"
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 20,
+    "desc": "无锚点时从 QQ 服务器获取最新双向历史；服务器或身份解析失败时动作失败，不返回不完整的本地缓存"
+   },
+   {
+    "name": "reverse_order",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true,
+    "desc": "仅在 message_id 非 0 时生效；true 返回锚点及更旧消息，false 返回锚点及更新消息"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "default": 0,
+     "x-role": "message_id"
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "无锚点时从 QQ 服务器获取最新双向历史；服务器或身份解析失败时动作失败，不返回不完整的本地缓存",
+     "default": 20
+    },
+    "reverse_order": {
+     "type": "boolean",
+     "description": "仅在 message_id 非 0 时生效；true 返回锚点及更旧消息，false 返回锚点及更新消息",
+     "default": true
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_friends_with_category",
   "readOnly": true,
   "summary": "获取分组好友列表",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
+ },
+ {
+  "name": "get_group_admin_settings",
+  "readOnly": true,
+  "summary": "获取群管理设置的当前值",
+  "params": [
+   "group_id"
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "get_group_album_list",
   "readOnly": true,
+  "summary": "",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "get_group_album_media_list",
   "readOnly": true,
+  "summary": "",
   "params": [
    "group_id",
    "album_id",
    "attach_info"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "attach_info",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "attach_info": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "get_group_at_all_remain",
@@ -596,7 +3443,37 @@
   "summary": "获取群 @全体成员 剩余次数",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_detail_info",
@@ -605,7 +3482,48 @@
   "params": [
    "group_id",
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_file_system_info",
@@ -613,7 +3531,37 @@
   "summary": "获取群文件系统信息",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_file_url",
@@ -623,7 +3571,60 @@
    "group_id",
    "file_id",
    "busid"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "busid",
+    "type": "raw",
+    "required": false,
+    "schema": {}
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    },
+    "busid": {}
+   },
+   "required": [
+    "group_id",
+    "file_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "get_group_files_by_folder",
@@ -633,7 +3634,63 @@
    "group_id",
    "folder_id",
    "folder"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "folder_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "folder",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "folder_id": {
+     "type": "string",
+     "default": ""
+    },
+    "folder": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "get_group_honor_info",
@@ -642,19 +3699,76 @@
   "params": [
    "group_id",
    "type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "type": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
  },
  {
   "name": "get_group_ignore_add_request",
   "readOnly": true,
   "summary": "获取被忽略的入群请求（NapCat）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_ignored_notifies",
   "readOnly": true,
   "summary": "获取被过滤的入群请求",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_info",
@@ -663,7 +3777,50 @@
   "params": [
    "group_id",
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
  },
  {
   "name": "get_group_info_ex",
@@ -672,7 +3829,48 @@
   "params": [
    "group_id",
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_list",
@@ -680,7 +3878,30 @@
   "summary": "获取群列表",
   "params": [
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
  },
  {
   "name": "get_group_member_info",
@@ -690,7 +3911,68 @@
    "group_id",
    "user_id",
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
  },
  {
   "name": "get_group_member_list",
@@ -699,7 +3981,50 @@
   "params": [
    "group_id",
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "no_cache": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
  },
  {
   "name": "get_group_msg_history",
@@ -710,7 +4035,82 @@
    "message_id",
    "count",
    "reverse_order"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "message_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer"
+    },
+    "default": 0,
+    "role": "message_id"
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 20
+   },
+   {
+    "name": "reverse_order",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true,
+    "desc": "仅在 message_id 非 0 时生效；true 返回锚点及更旧消息，false 返回锚点及更新消息"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "default": 0,
+     "x-role": "message_id"
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 20
+    },
+    "reverse_order": {
+     "type": "boolean",
+     "description": "仅在 message_id 非 0 时生效；true 返回锚点及更旧消息，false 返回锚点及更新消息",
+     "default": true
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_root_files",
@@ -718,7 +4118,37 @@
   "summary": "获取群根目录文件列表",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "get_group_shut_list",
@@ -726,7 +4156,37 @@
   "summary": "获取群禁言列表",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_signed_list",
@@ -734,7 +4194,37 @@
   "summary": "获取群今日打卡列表",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_group_system_msg",
@@ -744,7 +4234,100 @@
    "group_id",
    "only_pending",
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "only_pending",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100
+    },
+    "default": 50,
+    "desc": "每个收件箱最多读取的记录数"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "only_pending": {
+     "type": "boolean",
+     "default": false
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100,
+     "description": "每个收件箱最多读取的记录数",
+     "default": 50
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群信息"
+ },
+ {
+  "name": "get_group_tags",
+  "readOnly": true,
+  "summary": "读取某个群分类下的资料标签",
+  "params": [
+   "group_class"
+  ],
+  "parameters": [
+   {
+    "name": "group_class",
+    "type": "int",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_class": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 4294967295
+    }
+   },
+   "required": [
+    "group_class"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "get_group_todo_list",
@@ -752,7 +4335,37 @@
   "summary": "获取群待办列表",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_image",
@@ -761,18 +4374,162 @@
   "params": [
    "file",
    "file_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "image"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "file_id"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "default": "",
+     "x-role": "image"
+    },
+    "file_id": {
+     "type": "string",
+     "default": "",
+     "x-role": "file_id"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_login_info",
   "readOnly": true,
-  "params": []
+  "summary": "",
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "信息"
  },
  {
   "name": "get_mini_app_ark",
   "readOnly": true,
   "summary": "获取小程序卡片 ark",
-  "params": []
+  "params": [
+   "type",
+   "title",
+   "desc",
+   "picUrl",
+   "pic_url",
+   "jumpUrl",
+   "jump_url"
+  ],
+  "parameters": [
+   {
+    "name": "type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "title",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "desc",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "picUrl",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "pic_url",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "jumpUrl",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "jump_url",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "type": {
+     "type": "string"
+    },
+    "title": {
+     "type": "string"
+    },
+    "desc": {
+     "type": "string"
+    },
+    "picUrl": {
+     "type": "string"
+    },
+    "pic_url": {
+     "type": "string"
+    },
+    "jumpUrl": {
+     "type": "string"
+    },
+    "jump_url": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_msg",
@@ -780,7 +4537,79 @@
   "summary": "获取消息",
   "params": [
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
+ },
+ {
+  "name": "get_msg_emoji_likes",
+  "readOnly": true,
+  "summary": "获取一条消息的全部表情回应",
+  "params": [
+   "message_id"
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_online_clients",
@@ -788,7 +4617,32 @@
   "summary": "获取在线客户端",
   "params": [
    "no_cache"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "no_cache",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false,
+    "desc": "是否强制刷新；QQ 当前仅暴露本地快照，true 会明确失败"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "no_cache": {
+     "type": "boolean",
+     "description": "是否强制刷新；QQ 当前仅暴露本地快照，true 会明确失败",
+     "default": false
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_private_file_url",
@@ -798,7 +4652,63 @@
    "user_id",
    "file_id",
    "file_hash"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "file_hash",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    },
+    "file_hash": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "file_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "get_profile_like",
@@ -808,15 +4718,116 @@
    "user_id",
    "start",
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 0,
+    "role": "user_id"
+   },
+   {
+    "name": "start",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 0
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 10
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 0,
+     "x-role": "user_id"
+    },
+    "start": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 0
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 10
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_qun_album_list",
   "readOnly": true,
+  "summary": "",
   "params": [
    "group_id",
    "attach_info"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "attach_info",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "attach_info": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "get_qzone_feeds",
@@ -825,7 +4836,53 @@
   "params": [
    "page_num",
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "page_num",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "页码（1 起；仅首页可靠）",
+    "default": 1
+   },
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50
+    },
+    "desc": "本页数量",
+    "default": 10
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "page_num": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "页码（1 起；仅首页可靠）",
+     "default": 1
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50,
+     "description": "本页数量",
+     "default": 10
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "get_qzone_msg_list",
@@ -835,7 +4892,70 @@
    "target_uin",
    "pos",
    "num"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "target_uin",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "目标 QQ 号，省略则取机器人自己"
+   },
+   {
+    "name": "pos",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "起始偏移",
+    "default": 0
+   },
+   {
+    "name": "num",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100
+    },
+    "desc": "本页数量",
+    "default": 20
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "target_uin": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "目标 QQ 号，省略则取机器人自己",
+     "x-role": "user_id"
+    },
+    "pos": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "起始偏移",
+     "default": 0
+    },
+    "num": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100,
+     "description": "本页数量",
+     "default": 20
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "get_recent_contact",
@@ -843,7 +4963,32 @@
   "summary": "获取最近会话（占位）",
   "params": [
    "count"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "count",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 10
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "count": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 10
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_record",
@@ -853,19 +4998,114 @@
    "file",
    "file_id",
    "out_format"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "record"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "",
+    "role": "file_id"
+   },
+   {
+    "name": "out_format",
+    "type": "enum",
+    "required": false,
+    "values": [
+     "mp3",
+     "amr",
+     "wma",
+     "m4a",
+     "spx",
+     "ogg",
+     "wav",
+     "flac"
+    ],
+    "schema": {
+     "enum": [
+      "mp3",
+      "amr",
+      "wma",
+      "m4a",
+      "spx",
+      "ogg",
+      "wav",
+      "flac"
+     ]
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "default": "",
+     "x-role": "record"
+    },
+    "file_id": {
+     "type": "string",
+     "default": "",
+     "x-role": "file_id"
+    },
+    "out_format": {
+     "enum": [
+      "mp3",
+      "amr",
+      "wma",
+      "m4a",
+      "spx",
+      "ogg",
+      "wav",
+      "flac"
+     ]
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_rkey",
   "readOnly": true,
   "summary": "获取下载 rkey",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_rkey_server",
   "readOnly": true,
   "summary": "获取 rkey 服务器信息",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_share_link",
@@ -873,12 +5113,47 @@
   "summary": "获取文件分享链接",
   "params": [
    "fileset_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_status",
   "readOnly": true,
-  "params": []
+  "summary": "",
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "信息"
  },
  {
   "name": "get_stranger_info",
@@ -886,18 +5161,65 @@
   "summary": "获取陌生人信息",
   "params": [
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "好友"
  },
  {
   "name": "get_unidirectional_friend_list",
   "readOnly": true,
   "summary": "获取单向好友列表",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "get_version_info",
   "readOnly": true,
-  "params": []
+  "summary": "",
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "信息"
  },
  {
   "name": "group_poke",
@@ -906,7 +5228,55 @@
   "params": [
    "group_id",
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "like_qzone",
@@ -916,13 +5286,85 @@
    "tid",
    "target_uin",
    "abstime"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "tid",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说 tid"
+   },
+   {
+    "name": "target_uin",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "说说所属 QQ 号，省略则为机器人自己"
+   },
+   {
+    "name": "abstime",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "说说发表时间（unix 秒），传真实值更可靠",
+    "default": 0,
+    "role": "timestamp"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tid": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说 tid"
+    },
+    "target_uin": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "说说所属 QQ 号，省略则为机器人自己",
+     "x-role": "user_id"
+    },
+    "abstime": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "说说发表时间（unix 秒），传真实值更可靠",
+     "default": 0,
+     "x-role": "timestamp"
+    }
+   },
+   "required": [
+    "tid"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "list_filesets",
   "readOnly": false,
   "summary": "列出当前账号的所有闪传文件集",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "mark_group_msg_as_read",
@@ -931,7 +5373,54 @@
   "params": [
    "message_id",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "mark_msg_as_read",
@@ -940,7 +5429,52 @@
   "params": [
    "message_id",
    "target_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "target_id",
+    "type": "uint",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "target_id": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "mark_private_msg_as_read",
@@ -949,7 +5483,54 @@
   "params": [
    "message_id",
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "modify_custom_face",
@@ -958,7 +5539,46 @@
   "params": [
    "emoji_id",
    "desc"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "desc",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "emoji_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "move_custom_face_to_front",
@@ -966,7 +5586,33 @@
   "summary": "收藏表情移到最前",
   "params": [
    "emoji_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "emoji_id": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "move_group_file",
@@ -977,13 +5623,95 @@
    "file_id",
    "parent_directory",
    "target_directory"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "parent_directory",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "target_directory",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    },
+    "parent_directory": {
+     "type": "string",
+     "minLength": 1
+    },
+    "target_directory": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "file_id",
+    "parent_directory",
+    "target_directory"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "nc_get_packet_status",
   "readOnly": true,
   "summary": "获取 packet 状态（占位）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "nc_get_user_status",
@@ -991,7 +5719,35 @@
   "summary": "获取用户在线/扩展状态",
   "params": [
    "user_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "ocr_image",
@@ -999,7 +5755,35 @@
   "summary": "OCR 图片（服务端，需图片 URL 或已缓存的图片 file_id）",
   "params": [
    "image"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "image",
+    "type": "string",
+    "required": true,
+    "role": "image",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "image": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "image"
+    }
+   },
+   "required": [
+    "image"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "rename_flash_file",
@@ -1008,7 +5792,47 @@
   "params": [
    "fileset_id",
    "new_name"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "new_name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "new_name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "fileset_id",
+    "new_name"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "rename_group_file",
@@ -1019,7 +5843,80 @@
    "file_id",
    "current_parent_directory",
    "new_name"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "current_parent_directory",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "/"
+   },
+   {
+    "name": "new_name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    },
+    "current_parent_directory": {
+     "type": "string",
+     "default": "/"
+    },
+    "new_name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "file_id",
+    "new_name"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "rename_group_file_folder",
@@ -1030,7 +5927,77 @@
    "folder_id",
    "new_folder_name",
    "name"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "folder_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "new_folder_name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "folder_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "new_folder_name": {
+     "type": "string",
+     "default": ""
+    },
+    "name": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id",
+    "folder_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "request_decrypt_key",
@@ -1038,7 +6005,33 @@
   "summary": "请求数据库解密密钥",
   "params": [
    "db_path"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "db_path",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "db_path": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "db_path"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "search_sys_faces",
@@ -1046,7 +6039,35 @@
   "summary": "搜索 QQ 系统表情",
   "params": [
    "query"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "query",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "编号、名称、别名或分组名"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "description": "编号、名称、别名或分组名"
+    }
+   },
+   "required": [
+    "query"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "系统表情"
  },
  {
   "name": "send_ark_share",
@@ -1056,7 +6077,152 @@
    "user_id",
    "group_id",
    "phone_number"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "phone_number",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "phone_number": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
+ },
+ {
+  "name": "send_custom_face",
+  "readOnly": false,
+  "summary": "发送账号收藏表情（emoji_id 或 MD5），保留表情显示样式",
+  "params": [
+   "emoji_id",
+   "group_id",
+   "user_id",
+   "reply_to"
+  ],
+  "parameters": [
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "当前账号收藏表情的完整 ID 或 32 位 MD5"
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "目标群号；与 user_id 二选一"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "目标 QQ 号；与 group_id 二选一"
+   },
+   {
+    "name": "reply_to",
+    "type": "messageId",
+    "required": false,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    },
+    "desc": "可选回复消息 ID"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "emoji_id": {
+     "type": "string",
+     "description": "当前账号收藏表情的完整 ID 或 32 位 MD5"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "目标群号；与 user_id 二选一",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "目标 QQ 号；与 group_id 二选一",
+     "x-role": "user_id"
+    },
+    "reply_to": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "description": "可选回复消息 ID",
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
  },
  {
   "name": "send_flash_msg",
@@ -1066,7 +6232,63 @@
    "fileset_id",
    "user_id",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "fileset_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "fileset_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "fileset_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_forward_msg",
@@ -1074,8 +6296,124 @@
   "summary": "发送合并转发（按 message_type/群号自动路由）",
   "params": [
    "messages",
-   "message"
-  ]
+   "message",
+   "message_type",
+   "group_id",
+   "user_id",
+   "source",
+   "summary",
+   "prompt",
+   "news"
+  ],
+  "parameters": [
+   {
+    "name": "messages",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message_type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "user_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "source",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "summary",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "prompt",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "news",
+    "type": "raw",
+    "required": false,
+    "schema": {}
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "messages": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message_type": {
+     "type": "string"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "source": {
+     "type": "string"
+    },
+    "summary": {
+     "type": "string"
+    },
+    "prompt": {
+     "type": "string"
+    },
+    "news": {}
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_group_ai_record",
@@ -1086,7 +6424,80 @@
    "character",
    "text",
    "chat_type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "character",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "text",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "chat_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "character": {
+     "type": "string",
+     "minLength": 1
+    },
+    "text": {
+     "type": "string",
+     "minLength": 1
+    },
+    "chat_type": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1
+    }
+   },
+   "required": [
+    "group_id",
+    "character",
+    "text"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_group_ark_share",
@@ -1094,7 +6505,35 @@
   "summary": "分享群 Ark 卡片（NapCat 标准名）",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_group_forward_msg",
@@ -1103,8 +6542,104 @@
   "params": [
    "group_id",
    "messages",
-   "message"
-  ]
+   "message",
+   "source",
+   "summary",
+   "prompt",
+   "news"
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "messages",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "source",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "summary",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "prompt",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "news",
+    "type": "raw",
+    "required": false,
+    "schema": {}
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "messages": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "source": {
+     "type": "string"
+    },
+    "summary": {
+     "type": "string"
+    },
+    "prompt": {
+     "type": "string"
+    },
+    "news": {}
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_group_msg",
@@ -1114,7 +6649,62 @@
    "group_id",
    "message",
    "auto_escape"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": true,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "auto_escape",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "auto_escape": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id",
+    "message"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
  },
  {
   "name": "send_like",
@@ -1123,7 +6713,50 @@
   "params": [
    "user_id",
    "times"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "times",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "times": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_msg",
@@ -1135,7 +6768,85 @@
    "group_id",
    "user_id",
    "auto_escape"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message",
+    "type": "message",
+    "required": true,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message_type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "auto_escape",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message_type": {
+     "type": "string"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "auto_escape": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "message"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
  },
  {
   "name": "send_packet",
@@ -1145,7 +6856,59 @@
    "cmd",
    "data",
    "rsp"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "cmd",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "data",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "rsp",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "cmd": {
+     "type": "string",
+     "minLength": 1
+    },
+    "data": {
+     "type": "string",
+     "default": ""
+    },
+    "rsp": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "cmd"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_poke",
@@ -1154,7 +6917,50 @@
   "params": [
    "user_id",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_private_forward_msg",
@@ -1163,8 +6969,102 @@
   "params": [
    "user_id",
    "messages",
-   "message"
-  ]
+   "message",
+   "source",
+   "summary",
+   "prompt",
+   "news"
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "messages",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "source",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "summary",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "prompt",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "news",
+    "type": "raw",
+    "required": false,
+    "schema": {}
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "messages": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "source": {
+     "type": "string"
+    },
+    "summary": {
+     "type": "string"
+    },
+    "prompt": {
+     "type": "string"
+    },
+    "news": {}
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "send_private_msg",
@@ -1175,7 +7075,73 @@
    "message",
    "group_id",
    "auto_escape"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": true,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "auto_escape",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "auto_escape": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "user_id",
+    "message"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "消息"
  },
  {
   "name": "send_qzone_msg",
@@ -1186,7 +7152,215 @@
    "images",
    "ugc_right",
    "target_uins"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "content",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说正文"
+   },
+   {
+    "name": "images",
+    "type": "string[]",
+    "required": false,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "desc": "图片数组（可选），支持 file:// http:// base64://；自动上传"
+   },
+   {
+    "name": "ugc_right",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "查看权限：1=所有人可见，4=好友可见，16=部分好友可见，64=仅自己可见，128=部分好友不可见",
+    "default": 1
+   },
+   {
+    "name": "target_uins",
+    "type": "uint[]",
+    "required": false,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1
+     }
+    },
+    "desc": "权限作用 QQ 号数组；ugc_right=16 时表示可见名单，128 时表示不可见名单"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "content": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说正文"
+    },
+    "images": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "图片数组（可选），支持 file:// http:// base64://；自动上传"
+    },
+    "ugc_right": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "查看权限：1=所有人可见，4=好友可见，16=部分好友可见，64=仅自己可见，128=部分好友不可见",
+     "default": 1
+    },
+    "target_uins": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "description": "权限作用 QQ 号数组；ugc_right=16 时表示可见名单，128 时表示不可见名单"
+    }
+   },
+   "required": [
+    "content"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [
+   "ugc_right must be one of 1, 4, 16, 64, 128",
+   "target_uins is required when ugc_right is 16 or 128"
+  ],
+  "category": "空间"
+ },
+ {
+  "name": "send_tuwen_ark",
+  "readOnly": false,
+  "summary": "发送图文 Ark 卡片（私聊/群聊）",
+  "params": [
+   "user_id",
+   "group_id",
+   "title",
+   "desc",
+   "summary",
+   "preview_url",
+   "jump_url"
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "title",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "desc",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "summary",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "[分享]"
+   },
+   {
+    "name": "preview_url",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": "https://tangram-1251316161.file.myqcloud.com/files/20210721/e50a8e37e08f29bf1ffc7466e1950690.png"
+   },
+   {
+    "name": "jump_url",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "title": {
+     "type": "string"
+    },
+    "desc": {
+     "type": "string"
+    },
+    "summary": {
+     "type": "string",
+     "default": "[分享]"
+    },
+    "preview_url": {
+     "type": "string",
+     "default": "https://tangram-1251316161.file.myqcloud.com/files/20210721/e50a8e37e08f29bf1ffc7466e1950690.png"
+    },
+    "jump_url": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "title",
+    "desc",
+    "jump_url"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_diy_online_status",
@@ -1196,7 +7370,63 @@
    "face_id",
    "face_type",
    "wording"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "face_id",
+    "type": "int",
+    "required": true,
+    "role": "face_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "face_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1
+   },
+   {
+    "name": "wording",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "face_id": {
+     "type": "integer",
+     "minimum": 0,
+     "x-role": "face_id"
+    },
+    "face_type": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1
+    },
+    "wording": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "face_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_doubt_friends_add_request",
@@ -1205,7 +7435,46 @@
   "params": [
    "flag",
    "approve"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "flag",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "approve",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "flag": {
+     "type": "string",
+     "minLength": 1
+    },
+    "approve": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "flag"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_essence_msg",
@@ -1213,7 +7482,39 @@
   "summary": "设置精华消息",
   "params": [
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_friend_add_request",
@@ -1222,7 +7523,46 @@
   "params": [
    "flag",
    "approve"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "flag",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "approve",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "flag": {
+     "type": "string",
+     "minLength": 1
+    },
+    "approve": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "flag"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "请求"
  },
  {
   "name": "set_friend_remark",
@@ -1231,7 +7571,47 @@
   "params": [
    "user_id",
    "remark"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "remark",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "remark": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "user_id",
+    "remark"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_friends_category",
@@ -1241,7 +7621,69 @@
    "uin",
    "categoryId",
    "categoryName"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "uin",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "要移动的好友 QQ 号"
+   },
+   {
+    "name": "categoryId",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "目标分组 ID"
+   },
+   {
+    "name": "categoryName",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "目标分组名称（必须唯一且完全匹配）"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "uin": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "要移动的好友 QQ 号",
+     "x-role": "user_id"
+    },
+    "categoryId": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "目标分组 ID"
+    },
+    "categoryName": {
+     "type": "string",
+     "minLength": 1,
+     "description": "目标分组名称（必须唯一且完全匹配）"
+    }
+   },
+   "required": [
+    "uin"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [
+   "exactly one of: categoryId | categoryName"
+  ],
+  "category": "扩展"
  },
  {
   "name": "set_group_add_option",
@@ -1249,8 +7691,77 @@
   "summary": "设置加群选项",
   "params": [
    "group_id",
-   "add_type"
-  ]
+   "add_type",
+   "group_question",
+   "group_answer"
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "add_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 0
+   },
+   {
+    "name": "group_question",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "group_answer",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "add_type": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 0
+    },
+    "group_question": {
+     "type": "string"
+    },
+    "group_answer": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_add_request",
@@ -1262,7 +7773,81 @@
    "type",
    "approve",
    "reason"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "flag",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "sub_type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "type",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "approve",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   },
+   {
+    "name": "reason",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "flag": {
+     "type": "string",
+     "minLength": 1
+    },
+    "sub_type": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "approve": {
+     "type": "boolean",
+     "default": true
+    },
+    "reason": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "flag"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "请求"
  },
  {
   "name": "set_group_admin",
@@ -1272,29 +7857,176 @@
    "group_id",
    "user_id",
    "enable"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "enable",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "enable": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_album_media_like",
   "readOnly": false,
+  "summary": "",
   "params": [
    "group_id",
    "album_id",
    "batch_id",
    "lloc"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "batch_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "lloc",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "batch_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "lloc": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "batch_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "set_group_anonymous",
   "readOnly": false,
   "summary": "匿名开关（未实现，返回 ok）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_anonymous_ban",
   "readOnly": false,
   "summary": "匿名禁言（未实现，返回 ok）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_ban",
@@ -1304,7 +8036,72 @@
    "group_id",
    "user_id",
    "duration"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "duration",
+    "type": "int",
+    "required": false,
+    "role": "duration",
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 1800
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "duration": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 1800,
+     "x-role": "duration"
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_card",
@@ -1314,7 +8111,68 @@
    "group_id",
    "user_id",
    "card"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "card",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "card": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_kick",
@@ -1324,7 +8182,68 @@
    "group_id",
    "user_id",
    "reject_add_request"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "reject_add_request",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "reject_add_request": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_kick_members",
@@ -1334,7 +8253,74 @@
    "group_id",
    "user_id",
    "reject_add_request"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint[]",
+    "required": true,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1,
+      "x-role": "member_id"
+     },
+     "minItems": 1
+    }
+   },
+   {
+    "name": "reject_add_request",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1,
+      "x-role": "member_id"
+     },
+     "minItems": 1
+    },
+    "reject_add_request": {
+     "type": "boolean",
+     "default": false
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_leave",
@@ -1342,7 +8328,37 @@
   "summary": "退群",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_member_invite_policy",
@@ -1351,18 +8367,141 @@
   "params": [
    "group_id",
    "policy"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "policy",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "disabled",
+     "require_approval",
+     "no_approval",
+     "no_approval_under_100"
+    ],
+    "schema": {
+     "enum": [
+      "disabled",
+      "require_approval",
+      "no_approval",
+      "no_approval_under_100"
+     ]
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "policy": {
+     "enum": [
+      "disabled",
+      "require_approval",
+      "no_approval",
+      "no_approval_under_100"
+     ]
+    }
+   },
+   "required": [
+    "group_id",
+    "policy"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_member_permissions",
   "readOnly": false,
-  "summary": "设置群成员权限",
+  "summary": "设置群成员权限（仅群主可改）",
   "params": [
    "group_id",
    "allow_member_upload_album",
    "allow_member_temporary_session",
    "allow_member_create_group"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "allow_member_upload_album",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    }
+   },
+   {
+    "name": "allow_member_temporary_session",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    }
+   },
+   {
+    "name": "allow_member_create_group",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "allow_member_upload_album": {
+     "type": "boolean"
+    },
+    "allow_member_temporary_session": {
+     "type": "boolean"
+    },
+    "allow_member_create_group": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [
+   "at least one of: allow_member_upload_album, allow_member_temporary_session, allow_member_create_group"
+  ],
+  "category": "群管理"
  },
  {
   "name": "set_group_name",
@@ -1371,7 +8510,50 @@
   "params": [
    "group_id",
    "group_name"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "group_name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "group_name": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_new_member_history_visibility",
@@ -1380,7 +8562,49 @@
   "params": [
    "group_id",
    "visible"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "visible",
+    "type": "bool",
+    "required": true,
+    "schema": {
+     "type": "boolean"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "visible": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "group_id",
+    "visible"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_portrait",
@@ -1389,7 +8613,53 @@
   "params": [
    "group_id",
    "file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "image",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "image"
+    }
+   },
+   "required": [
+    "group_id",
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_reaction",
@@ -1400,7 +8670,81 @@
    "message_id",
    "code",
    "is_set"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "code",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "is_set",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "code": {
+     "type": "string",
+     "minLength": 1
+    },
+    "is_set": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "message_id",
+    "code"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_group_remark",
@@ -1409,7 +8753,47 @@
   "params": [
    "group_id",
    "remark"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "remark",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "remark": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "group_id",
+    "remark"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_group_robot_add_option",
@@ -1419,7 +8803,63 @@
    "group_id",
    "robot_member_switch",
    "robot_member_examine"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "robot_member_switch",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "robot_member_examine",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "robot_member_switch": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "robot_member_examine": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_group_search",
@@ -1429,7 +8869,63 @@
    "group_id",
    "no_finger_open",
    "no_code_finger_open"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "no_finger_open",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   {
+    "name": "no_code_finger_open",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "no_finger_open": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "no_code_finger_open": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_sign",
@@ -1437,7 +8933,37 @@
   "summary": "群签到",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_group_special_title",
@@ -1447,7 +8973,68 @@
    "group_id",
    "user_id",
    "special_title"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "member_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "QQ 号"
+   },
+   {
+    "name": "special_title",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "QQ 号",
+     "x-role": "member_id"
+    },
+    "special_title": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "required": [
+    "group_id",
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_group_todo",
@@ -1456,7 +9043,57 @@
   "params": [
    "group_id",
    "message_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "message_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_group_whole_ban",
@@ -1465,7 +9102,50 @@
   "params": [
    "group_id",
    "enable"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "enable",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "enable": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群管理"
  },
  {
   "name": "set_input_status",
@@ -1474,7 +9154,48 @@
   "params": [
    "user_id",
    "event_type"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "event_type",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer"
+    },
+    "default": 0
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "event_type": {
+     "type": "integer",
+     "default": 0
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_msg_emoji_like",
@@ -1484,7 +9205,66 @@
    "message_id",
    "emoji_id",
    "set"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "message_id",
+    "type": "messageId",
+    "required": true,
+    "role": "message_id",
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "emoji_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "set",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "message_id": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     },
+     "x-role": "message_id"
+    },
+    "emoji_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "set": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "message_id",
+    "emoji_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_online_status",
@@ -1494,7 +9274,67 @@
    "status",
    "ext_status",
    "battery_status"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "status",
+    "type": "int",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    }
+   },
+   {
+    "name": "ext_status",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 0
+   },
+   {
+    "name": "battery_status",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 100
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "status": {
+     "type": "integer",
+     "not": {
+      "const": 0
+     }
+    },
+    "ext_status": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 0
+    },
+    "battery_status": {
+     "type": "integer",
+     "minimum": 0,
+     "default": 100
+    }
+   },
+   "required": [
+    "status"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_qq_avatar",
@@ -1502,7 +9342,35 @@
   "summary": "设置 QQ 头像",
   "params": [
    "file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "image",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "image"
+    }
+   },
+   "required": [
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_qq_profile",
@@ -1510,8 +9378,58 @@
   "summary": "设置 QQ 资料",
   "params": [
    "nickname",
-   "personal_note"
-  ]
+   "personal_note",
+   "sex"
+  ],
+  "parameters": [
+   {
+    "name": "nickname",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "personal_note",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "sex",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 2
+    },
+    "desc": "0 未知，1 男，2 女"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "nickname": {
+     "type": "string"
+    },
+    "personal_note": {
+     "type": "string"
+    },
+    "sex": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 2,
+     "description": "0 未知，1 男，2 女"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_qzone_ban",
@@ -1520,7 +9438,52 @@
   "params": [
    "user_id",
    "enable"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "目标 QQ 号"
+   },
+   {
+    "name": "enable",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "desc": "true 拉黑，false 解除拉黑",
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "目标 QQ 号",
+     "x-role": "user_id"
+    },
+    "enable": {
+     "type": "boolean",
+     "description": "true 拉黑，false 解除拉黑",
+     "default": true
+    }
+   },
+   "required": [
+    "user_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "set_qzone_msg_right",
@@ -1530,13 +9493,89 @@
    "tid",
    "ugc_right",
    "target_uins"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "tid",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说 tid（来自 get_qzone_msg_list / send_qzone_msg）"
+   },
+   {
+    "name": "ugc_right",
+    "type": "int",
+    "required": true,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "查看权限：1=所有人可见，4=好友可见，16=部分好友可见，64=仅自己可见，128=部分好友不可见"
+   },
+   {
+    "name": "target_uins",
+    "type": "uint[]",
+    "required": false,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1
+     }
+    },
+    "desc": "权限作用 QQ 号数组；ugc_right=16 时表示可见名单，128 时表示不可见名单"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tid": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说 tid（来自 get_qzone_msg_list / send_qzone_msg）"
+    },
+    "ugc_right": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "查看权限：1=所有人可见，4=好友可见，16=部分好友可见，64=仅自己可见，128=部分好友不可见"
+    },
+    "target_uins": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "description": "权限作用 QQ 号数组；ugc_right=16 时表示可见名单，128 时表示不可见名单"
+    }
+   },
+   "required": [
+    "tid",
+    "ugc_right"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [
+   "ugc_right must be one of 1, 4, 16, 64, 128",
+   "target_uins is required when ugc_right is 16 or 128"
+  ],
+  "category": "空间"
  },
  {
   "name": "set_restart",
   "readOnly": false,
   "summary": "重启（不支持）",
-  "params": []
+  "params": [],
+  "parameters": [],
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "set_self_longnick",
@@ -1545,7 +9584,39 @@
   "params": [
    "longNick",
    "long_nick"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "longNick",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   },
+   {
+    "name": "long_nick",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "longNick": {
+     "type": "string"
+    },
+    "long_nick": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "share_group_ex",
@@ -1553,7 +9624,35 @@
   "summary": "分享群 Ark 卡片",
   "params": [
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "required": [
+    "group_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "share_peer",
@@ -1563,7 +9662,60 @@
    "user_id",
    "group_id",
    "phone_number"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "phone_number",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "phone_number": {
+     "type": "string",
+     "default": ""
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "test_download_stream",
@@ -1571,7 +9723,32 @@
   "summary": "测试下载流(推送 10 个数据帧,验证流式传输,不触达 QQ)",
   "params": [
    "error"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "error",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": false,
+    "desc": "是否触发测试错误"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "error": {
+     "type": "boolean",
+     "description": "是否触发测试错误",
+     "default": false
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "trans_group_file",
@@ -1580,7 +9757,51 @@
   "params": [
    "group_id",
    "file_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "file_id",
+    "type": "string",
+    "required": true,
+    "role": "file_id",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    },
+    "file_id": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file_id"
+    }
+   },
+   "required": [
+    "group_id",
+    "file_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "translate_en2zh",
@@ -1588,7 +9809,37 @@
   "summary": "英译中",
   "params": [
    "words"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "words",
+    "type": "string[]",
+    "required": true,
+    "schema": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "words": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "words"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "unlike_qzone",
@@ -1598,7 +9849,71 @@
    "tid",
    "target_uin",
    "abstime"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "tid",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "说说 tid"
+   },
+   {
+    "name": "target_uin",
+    "type": "uint",
+    "required": false,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "说说所属 QQ 号，省略则为机器人自己"
+   },
+   {
+    "name": "abstime",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "说说发表时间（unix 秒），传真实值更可靠",
+    "default": 0,
+    "role": "timestamp"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tid": {
+     "type": "string",
+     "minLength": 1,
+     "description": "说说 tid"
+    },
+    "target_uin": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "说说所属 QQ 号，省略则为机器人自己",
+     "x-role": "user_id"
+    },
+    "abstime": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "说说发表时间（unix 秒），传真实值更可靠",
+     "default": 0,
+     "x-role": "timestamp"
+    }
+   },
+   "required": [
+    "tid"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "空间"
  },
  {
   "name": "upload_file_stream",
@@ -1616,7 +9931,175 @@
    "reset",
    "verify_only",
    "file_retention"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "stream_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "流 ID(客户端生成的 UUID,限 [A-Za-z0-9_-])"
+   },
+   {
+    "name": "chunk_data",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "分块数据(Base64)"
+   },
+   {
+    "name": "chunk_index",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "分块索引(从 0 开始)"
+   },
+   {
+    "name": "total_chunks",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "总分块数(新流必填)"
+   },
+   {
+    "name": "file_size",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "desc": "文件总大小(字节)"
+   },
+   {
+    "name": "expected_sha256",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "期望的整文件 SHA256(校验)"
+   },
+   {
+    "name": "is_complete",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "desc": "是否为最后一个分块/触发合并"
+   },
+   {
+    "name": "filename",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "desc": "文件名"
+   },
+   {
+    "name": "reset",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "desc": "重置并丢弃该流"
+   },
+   {
+    "name": "verify_only",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "desc": "仅查询当前流状态"
+   },
+   {
+    "name": "file_retention",
+    "type": "int",
+    "required": false,
+    "schema": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "default": 300000,
+    "desc": "合并文件保留毫秒(0=不回收)"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "stream_id": {
+     "type": "string",
+     "minLength": 1,
+     "description": "流 ID(客户端生成的 UUID,限 [A-Za-z0-9_-])"
+    },
+    "chunk_data": {
+     "type": "string",
+     "description": "分块数据(Base64)"
+    },
+    "chunk_index": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "分块索引(从 0 开始)"
+    },
+    "total_chunks": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "总分块数(新流必填)"
+    },
+    "file_size": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "文件总大小(字节)"
+    },
+    "expected_sha256": {
+     "type": "string",
+     "description": "期望的整文件 SHA256(校验)"
+    },
+    "is_complete": {
+     "type": "boolean",
+     "description": "是否为最后一个分块/触发合并"
+    },
+    "filename": {
+     "type": "string",
+     "description": "文件名"
+    },
+    "reset": {
+     "type": "boolean",
+     "description": "重置并丢弃该流"
+    },
+    "verify_only": {
+     "type": "boolean",
+     "description": "仅查询当前流状态"
+    },
+    "file_retention": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "合并文件保留毫秒(0=不回收)",
+     "default": 300000
+    }
+   },
+   "required": [
+    "stream_id"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "流式接口"
  },
  {
   "name": "upload_forward_msg",
@@ -1626,7 +10109,54 @@
    "messages",
    "message",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "messages",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "messages": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "upload_foward_msg",
@@ -1636,7 +10166,54 @@
    "messages",
    "message",
    "group_id"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "messages",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "message",
+    "type": "message",
+    "required": false,
+    "schema": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": false,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "messages": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "message": {
+     "description": "OneBot message: string | segment[] | object. In segment arrays, text segments whose text field is exactly \"\" are compatibility placeholders and do not count as sendable segments; missing, null, and whitespace-only text remain subject to normal validation."
+    },
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "group_id"
+    }
+   },
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "扩展"
  },
  {
   "name": "upload_group_file",
@@ -1649,17 +10226,190 @@
    "folder",
    "folder_id",
    "upload_file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "file",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "folder",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "folder_id",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "upload_file",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file"
+    },
+    "name": {
+     "type": "string",
+     "default": ""
+    },
+    "folder": {
+     "type": "string",
+     "default": ""
+    },
+    "folder_id": {
+     "type": "string",
+     "default": ""
+    },
+    "upload_file": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "group_id",
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
  },
  {
   "name": "upload_image_to_qun_album",
   "readOnly": false,
+  "summary": "",
   "params": [
    "group_id",
    "album_id",
    "album_name",
    "file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "album_name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "image",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "album_name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "image"
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "album_name",
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  },
  {
   "name": "upload_private_file",
@@ -1670,6 +10420,167 @@
    "file",
    "name",
    "upload_file"
-  ]
+  ],
+  "parameters": [
+   {
+    "name": "user_id",
+    "type": "uint",
+    "required": true,
+    "role": "user_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "file",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "required": false,
+    "schema": {
+     "type": "string"
+    },
+    "default": ""
+   },
+   {
+    "name": "upload_file",
+    "type": "bool",
+    "required": false,
+    "schema": {
+     "type": "boolean"
+    },
+    "default": true
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "user_id": {
+     "type": "integer",
+     "minimum": 1,
+     "x-role": "user_id"
+    },
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "x-role": "file"
+    },
+    "name": {
+     "type": "string",
+     "default": ""
+    },
+    "upload_file": {
+     "type": "boolean",
+     "default": true
+    }
+   },
+   "required": [
+    "user_id",
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群文件"
+ },
+ {
+  "name": "upload_video_to_qun_album",
+  "readOnly": false,
+  "summary": "上传视频到群相册",
+  "params": [
+   "group_id",
+   "album_id",
+   "album_name",
+   "file"
+  ],
+  "parameters": [
+   {
+    "name": "group_id",
+    "type": "uint",
+    "required": true,
+    "role": "group_id",
+    "schema": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "desc": "群号"
+   },
+   {
+    "name": "album_id",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "相册 id"
+   },
+   {
+    "name": "album_name",
+    "type": "string",
+    "required": true,
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "相册名称"
+   },
+   {
+    "name": "file",
+    "type": "string",
+    "required": true,
+    "role": "video",
+    "schema": {
+     "type": "string",
+     "minLength": 1
+    },
+    "desc": "视频文件"
+   }
+  ],
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group_id": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "群号",
+     "x-role": "group_id"
+    },
+    "album_id": {
+     "type": "string",
+     "minLength": 1,
+     "description": "相册 id"
+    },
+    "album_name": {
+     "type": "string",
+     "minLength": 1,
+     "description": "相册名称"
+    },
+    "file": {
+     "type": "string",
+     "minLength": 1,
+     "description": "视频文件",
+     "x-role": "video"
+    }
+   },
+   "required": [
+    "group_id",
+    "album_id",
+    "album_name",
+    "file"
+   ],
+   "additionalProperties": true
+  },
+  "invariants": [],
+  "category": "群相册"
  }
 ]

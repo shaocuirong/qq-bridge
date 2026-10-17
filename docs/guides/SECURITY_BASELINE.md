@@ -25,6 +25,8 @@
 
 ## 二、已实现的边界（按攻击面）
 
+2026-10-17 MCP 管理重构补充：扩展工具全部经桥接统一鉴权与目标校验；参数按离线官方 JSON Schema 校验并只补齐当前会话目标。`/api/tool-automations` 是控制台专用接口，智能体令牌不能访问。工具关联的消息/通知/申请/定时唤醒须同时满足工具已启用、白名单、运行模式、暂停状态、冷却及原有唤醒限频；上游载荷只注入受限字段，不包含访问令牌、申请 flag 或内部配置。规则和提示词覆盖继续存放在被 Git 忽略的 `state/`，全局权限规则不由事件载荷修改。
+
 ### 1. 准入（谁能触发 agent）
 
 | 机制 | 位置 | 行为 |
@@ -63,7 +65,7 @@
 | 定长比较 | `crypto.timingSafeEqual` | 比较前先比长度，避免 `!==` 短路带来的时延侧信道 |
 | Host 校验 | 请求最前面 | Host 必须是 `127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`，否则 403（DNS rebinding 硬化） |
 | CSRF | 非 GET 请求 | 必须 `content-type: application/json`；若带 `Origin`，其 host 必须等于本机 |
-| agent 令牌隔离 | 请求前缀白名单 | 带 `x-agent-token` 的请求默认拒绝，仅放行 `/api/status`、`/api/socialV2/*`、`/api/send/*`、`/api/images/*`、`/api/authorize/read`；管理端点（人格/提示词/思考强度/白名单/重启/令牌）一律 403 |
+| agent 令牌隔离 | 请求前缀白名单 | 带 `x-agent-token` 的请求默认拒绝，仅放行 `/api/status`、`/api/socialV2/*`、`/api/send/*`、`/api/images/*`、`/api/authorize/read`；管理端点（人格/提示词/思考强度/白名单/重启/令牌/人物档案 `/api/persons*`）一律 403 |
 | 空令牌拒绝 | `x-agent-token === ''` | 一律 403，避免"空 = 管理端"的绕过 |
 | 写操作不挂 GET | 全路由审查 | 会触发副作用的接口（表情强制同步、语音同步）一律 POST；GET 只读 |
 | 请求体限制 | `readBody()` | 声明长度或实际累计超过 1 MB → 413；30 秒读取超时 |

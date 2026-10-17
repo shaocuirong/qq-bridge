@@ -4,12 +4,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
 import yaml from 'js-yaml';
+import { GROUPS } from '../src/qq-tool-groups.js';
+import { defaultToolProtocol } from '../src/tool-protocols.js';
 
 const preset = yaml.load(fs.readFileSync(
   new URL('../dsh/agent-presets/qq-chat-v2/agent.cordis.yml', import.meta.url), 'utf8',
 ));
 const persona = preset.find((row) => row.id === 'persona');
-const prefix = persona?.config?.prefix ?? '';
+const globalPrefix = persona?.config?.prefix ?? '';
+const prefix = globalPrefix + '\n\n' + GROUPS.map(g => defaultToolProtocol(g.id)).join('\n\n');
 
 test('reserved2 YAML resolves to the expected persona and template variables', () => {
   assert.equal(persona?.name, '@deepseek-ai/dsh-persona');
@@ -20,7 +23,7 @@ test('reserved2 YAML resolves to the expected persona and template variables', (
 
 test('local/admin tool restrictions and existing compaction budgets stay intact', () => {
   assert.deepEqual(preset.map((row) => row.id), [
-    'persona', 'tool-web', 'tool-ask-user', 'tool-todo', 'qq-tool-restrict', 'compaction',
+    'persona', 'tool-web', 'tool-ask-user', 'tool-todo', 'skills-scope', 'qq-tool-restrict', 'compaction',
   ]);
   assert.deepEqual(preset.find((row) => row.id === 'tool-web').config, { search: false, fetch: false });
   assert.equal(preset.find((row) => row.id === 'qq-tool-restrict').name, './qq-tool-restrict.mjs');
@@ -90,6 +93,8 @@ test('autonomy limits and the observation escape hatch stay described', () => {
     '【记忆卫生】', 'qq_memory_append', 'qq_memory_query', 'qq_memory_remove', 'qq_memory_clear',
     // 黑话面
     'qq_slang_query', 'qq_slang_submit', '不重复提交',
+    // 人物档案面（按 QQ 号跨群共享的长期印象）
+    '【人物档案】', 'qq_person_note', 'qq_person_query', '不要当面复述', '会被拒绝',
     // 频率上限
     '普通闲聊约 3~5 轮一张', '别刷屏', '每条只能一张，不能附带文字', '不要频繁拍',
     // 会话令牌是硬前置，漏传会被拒绝。
