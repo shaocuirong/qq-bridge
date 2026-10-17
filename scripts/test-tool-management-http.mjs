@@ -104,7 +104,7 @@ test('tool management API composes protocols, validates targets and isolates aut
   }
 });
 
-test('rule-specific protocol selections override only their wake turn, merge and agree with qq_get_prompt', async () => {
+test('rules inherit global protocols until customized, override independently and can switch back', async () => {
   const h = await bridgeHarness({ config: { socialV2: { wake: { batchWindowMs: 60000 } } } });
   let server;
   try {
@@ -123,17 +123,30 @@ test('rule-specific protocol selections override only their wake turn, merge and
     const rule = { id: 'member-note', name: '记录成员变化', enabled: true, keys: [key], events: ['notice:group_increase'], prompt: '查看这次成员变化', cooldownSeconds: 10 };
     const defaults = await request('/api/wake-rules', { rules: [rule] });
     assert.equal(defaults.rules[0].toolPromptGroups.length, defaults.promptGroups.length);
-    const memory = { ...rule, toolPromptGroups: ['memory'] };
-    await request('/api/wake-rules', { rules: [memory] });
+    assert.equal(defaults.rules[0].toolPromptMode, 'inherit');
     h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
-    const wake = h.buildWakePromptV2(key, 'question');
-    assert.ok(wake.includes('【记忆卫生】')); assert.equal(wake.includes('【当前唤醒】'), false);
+    let wake = h.buildWakePromptV2(key, 'wakeRule');
     let current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['wake']);
+    assert.ok(wake.includes('【当前唤醒】')); assert.equal(wake.includes('【记忆卫生】'), false);
+    const memory = { ...rule, toolPromptGroups: ['memory'] };
+    const custom = await request('/api/wake-rules', { rules: [memory] });
+    assert.equal(custom.rules[0].toolPromptMode, 'custom', '保留旧版已缩减的自定义选择');
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    wake = h.buildWakePromptV2(key, 'question');
+    assert.ok(wake.includes('【记忆卫生】')); assert.equal(wake.includes('【当前唤醒】'), false);
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
     assert.deepEqual(current.toolSuites.groups, ['memory']);
     assert.ok(current.enabledTools.includes('qq_set_wake_config'));
     st.wakeRuleContexts[0] = { ...st.wakeRuleContexts[0], id: 'new-arrival-during-turn' };
     current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
     assert.deepEqual(current.toolSuites.groups, ['memory'], '新到事件不能改变本轮已投递的协议选择');
+    const inherited = { ...rule, id: 'member-global', toolPromptMode: 'inherit', toolPromptGroups: [] };
+    await request('/api/wake-rules', { rules: [memory, inherited] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual([...current.toolSuites.groups].sort(), ['memory', 'wake'], '合批分别解析自定义与沿用，再合并');
     const messages = { ...rule, id: 'member-greeting', toolPromptGroups: ['send'] };
     await request('/api/wake-rules', { rules: [memory, messages] });
     h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
@@ -145,11 +158,32 @@ test('rule-specific protocol selections override only their wake turn, merge and
     h.buildWakePromptV2(key, 'wakeRule');
     current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
     assert.deepEqual(current.toolSuites.groups, []); assert.equal(current.toolSuites.block, '');
+    assert.equal(fs.readFileSync(globalFile, 'utf8'), original, '规则保存不修改仿真页选择');
+    const allCustom = { ...rule, toolPromptMode: 'custom', toolPromptGroups: defaults.promptGroups.map(g => g.id) };
+    await request('/api/wake-rules', { rules: [allCustom] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.ok(current.toolSuites.groups.includes('memory'), '自定义全选不能误判为沿用');
+    await request('/api/wake-rules', { rules: [{ ...memory, toolPromptMode: 'inherit' }] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['wake'], '切回沿用后忽略保留的自定义草稿');
+    await request('/api/socialV2/tool-prompts/selection', { selectedGroupIds: ['send'] });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['send'], '沿用规则跟随仿真页的后续修改');
+    await request('/api/wake-rules', { rules: [memory] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['memory'], '自定义规则不受全局改动影响');
     await request('/api/wake-rules', { rules: [] });
     h.buildWakePromptV2(key, 'question');
     current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
-    assert.deepEqual(current.toolSuites.groups, ['wake']);
-    assert.equal(fs.readFileSync(globalFile, 'utf8'), original); assert.equal(JSON.stringify(h.cfg.socialV2), config);
+    assert.deepEqual(current.toolSuites.groups, ['send']);
+    assert.equal(JSON.stringify(h.cfg.socialV2), config);
   } finally {
     if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
     await h.close();

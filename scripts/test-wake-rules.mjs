@@ -63,7 +63,7 @@ test('legacy tool-linked rules migrate without retaining a tool selector or tool
 }));
 
 test('unknown scopes, triggers, schedules and prompt shapes are rejected atomically', () => fixture(root => {
-  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }, { snapshotLimit: -1 }, { snapshotLimit: 101 }, { snapshotLimit: 1.5 }, { toolPromptGroups: null }, { toolPromptGroups: ['unknown'] }, { toolPromptGroups: 'memory' }]) {
+  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }, { snapshotLimit: -1 }, { snapshotLimit: 101 }, { snapshotLimit: 1.5 }, { toolPromptGroups: null }, { toolPromptGroups: ['unknown'] }, { toolPromptGroups: 'memory' }, { toolPromptMode: 'unknown' }, { toolPromptMode: null }]) {
     assert.throws(() => normalizeWakeRules([{ ...rule, ...patch }]));
   }
   const sent = [];
@@ -76,15 +76,25 @@ test('unknown scopes, triggers, schedules and prompt shapes are rejected atomica
   assert.equal(safeWakeEvent({ post_type: 'request', flag: 'private', accessToken: 'private' }).flag, undefined);
 }));
 
-test('each rule defaults to all prompt groups, preserves its own selection and still fires with none selected', () => fixture(root => {
-  assert.deepEqual(normalizeWakeRules([rule])[0].toolPromptGroups, WAKE_TOOL_PROMPT_GROUPS.map(g => g.id));
+test('rules default to inheritance and preserve custom or restored modes across persistence', () => fixture(root => {
+  const all = WAKE_TOOL_PROMPT_GROUPS.map(g => g.id);
+  assert.deepEqual(normalizeWakeRules([rule])[0].toolPromptGroups, all);
+  assert.equal(normalizeWakeRules([rule])[0].toolPromptMode, 'inherit');
+  assert.equal(normalizeWakeRules([{ ...rule, toolPromptGroups: all }])[0].toolPromptMode, 'inherit');
   const sent = [];
   const runtime = createWakeRuleRuntime({ root, isAllowed: () => true, isActive: () => true, dispatch: (_, context) => sent.push(context) });
-  runtime.replace([{ ...rule, toolPromptGroups: ['memory'] }, { ...rule, id: 'quiet-rule', toolPromptGroups: [] }]);
+  const rules = [{ ...rule, toolPromptGroups: ['memory'] }, { ...rule, id: 'quiet-rule', toolPromptGroups: [] },
+    { ...rule, id: 'custom-all', toolPromptMode: 'custom', toolPromptGroups: all },
+    { ...rule, id: 'restored-rule', toolPromptMode: 'inherit', toolPromptGroups: ['memory'] }];
+  runtime.replace(rules);
   runtime.event({ post_type: 'message', group_id: 456 });
-  assert.deepEqual(sent.map(c => c.toolPromptGroups), [['memory'], []]);
+  assert.deepEqual(sent.map(c => c.toolPromptGroups), [['memory'], [], all, ['memory']]);
+  assert.deepEqual(sent.map(c => c.toolPromptMode), ['custom', 'custom', 'custom', 'inherit']);
   const reloaded = createWakeRuleRuntime({ root, isAllowed: () => true, isActive: () => true, dispatch() {} });
-  assert.deepEqual(reloaded.view().rules.map(r => r.toolPromptGroups), [['memory'], []]);
+  assert.deepEqual(reloaded.view().rules, runtime.view().rules);
+  reloaded.replace(undefined, { message: '仅编辑场景' });
+  reloaded.replace(reloaded.view().rules.map(r => ({ ...r, enabled: false })));
+  assert.deepEqual(reloaded.view().rules.map(r => r.toolPromptMode), ['custom', 'custom', 'custom', 'inherit']);
 }));
 
 test('event snapshots use the requested latest count, include cooldown arrivals and isolate targets/types', () => fixture(root => {

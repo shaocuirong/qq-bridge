@@ -51,11 +51,15 @@ export function normalizeWakeRules(input) {
     if (!Array.isArray(selected) || selected.length > 100 || selected.some(id => !PROMPT_GROUP_IDS.has(id))) throw new Error('请选择有效的工具提示词组');
     const selectedIds = new Set(selected);
     const toolPromptGroups = [...PROMPT_GROUP_IDS].filter(id => selectedIds.has(id));
+    // 旧版没有模式字段：默认全选按沿用处理，已缩减或清空的选择保留为自定义。
+    const toolPromptMode = raw.toolPromptMode === undefined
+      ? (toolPromptGroups.length === PROMPT_GROUP_IDS.size ? 'inherit' : 'custom') : raw.toolPromptMode;
+    if (!['inherit', 'custom'].includes(toolPromptMode)) throw new Error('工具提示词模式须为 inherit 或 custom');
     // 兼容旧任务文本，但 tools 不再进入配置、调度判断或模型上下文。
     const prompt = String(raw.prompt ?? '').replaceAll('{{tools}}', '当前已启用的工具').trim();
     if (!prompt || prompt.length > 8000) throw new Error('唤醒提示词不能为空，最多 8000 字符');
     return { id, name: String(raw.name || '自定义唤醒').slice(0, 80), enabled: raw.enabled === true,
-      keys, events, intervalMinutes, cooldownSeconds, snapshotLimit, toolPromptGroups, prompt,
+      keys, events, intervalMinutes, cooldownSeconds, snapshotLimit, toolPromptMode, toolPromptGroups, prompt,
       reference: Object.hasOwn(WAKE_PROMPT_REFERENCES, raw.reference) ? raw.reference : null };
   });
 }
@@ -124,7 +128,7 @@ export function createWakeRuleRuntime({ root, isAllowed, isActive, dispatch, red
     const data = event ? redact(JSON.stringify(safeWakeEvent(event))) : '{}';
     const values = { key, reason: source, time: new Date(clock).toISOString(), event: data };
     const accepted = dispatch(key, { ruleId: rule.id, revision: revision(rule), name: rule.name, source,
-      toolPromptGroups: [...rule.toolPromptGroups],
+      toolPromptMode: rule.toolPromptMode, toolPromptGroups: [...rule.toolPromptGroups],
       prompt: renderWakeTemplate(rule.prompt, values),
       referencePrompt: rule.reference ? renderWakeTemplate(references()[rule.reference], values) : '', event: data });
     if (accepted !== false) lastEvent.set(bucket, clock);

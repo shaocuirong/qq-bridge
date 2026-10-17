@@ -10799,7 +10799,7 @@ async function main() {
       const prompts = readToolPrompts(ROOT);
       if (key && selectedGroups === undefined) selectedGroups = getSocialV2State(key).wakeRulePromptGroups;
       if (Array.isArray(selectedGroups)) {
-        // 规则自己的选择只在这一轮生效；不写全局开关，多条规则合批时取并集。
+        // 自定义规则覆盖本轮的全局选择；沿用规则的全局选择已在合批时计入，不写全局开关。
         const selected = new Set(selectedGroups);
         const active = activeToolGroups(cfg).filter(id => selected.has(id));
         const scoped = Object.fromEntries(active.map(id => [id, { ...prompts[id], enabled: true }]));
@@ -10858,7 +10858,11 @@ async function main() {
     const wakeRuleContexts = activeWakeRuleContextsV2(key, st);
     st.wakeRuleContextIds = wakeRuleContexts.map(c => c.id);
     // 固定本轮组选择：后续同规则事件替换待处理上下文时，qq_get_prompt 仍与已投递回合一致。
-    st.wakeRulePromptGroups = wakeRuleContexts.length ? [...new Set(wakeRuleContexts.flatMap(c => c.toolPromptGroups ?? []))] : null;
+    const customRulePrompts = wakeRuleContexts.some(c => c.toolPromptMode === 'custom');
+    const inheritedGroups = customRulePrompts && wakeRuleContexts.some(c => c.toolPromptMode !== 'custom')
+      ? buildToolSuitesPromptV2().groups : [];
+    st.wakeRulePromptGroups = customRulePrompts
+      ? [...new Set(wakeRuleContexts.flatMap(c => c.toolPromptMode === 'custom' ? c.toolPromptGroups : inheritedGroups))] : null;
     const toolSuites = buildToolSuitesPromptV2(key, st.wakeRulePromptGroups);
     const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
     const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c => {
