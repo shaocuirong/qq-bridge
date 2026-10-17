@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DEFAULT_WAKE_PROMPTS, WAKE_PROMPT_LABELS, renderWakeTemplate } from './wake-prompts.js';
+import { GROUPS } from './qq-tool-groups.js';
+
+export const WAKE_TOOL_PROMPT_GROUPS = GROUPS.map(({ id, label }) => ({ id, label }));
+const PROMPT_GROUP_IDS = new Set(WAKE_TOOL_PROMPT_GROUPS.map(group => group.id));
 
 export const WAKE_EVENT_TYPES = [
   ['message', '收到群聊 / 私聊消息', '消息'], ['notice:notify', '拍一拍等通知', '通知'],
@@ -43,11 +47,15 @@ export function normalizeWakeRules(input) {
     if (!events.length && !intervalMinutes) throw new Error('至少选择一种事件或开启定时任务');
     if (!Number.isFinite(cooldownSeconds) || cooldownSeconds < 10 || cooldownSeconds > 86400) throw new Error('冷却时间须为 10～86400 秒');
     if (!Number.isInteger(snapshotLimit) || snapshotLimit < 0 || snapshotLimit > 100) throw new Error('事件快照条数须为 0～100 的整数');
+    const selected = raw.toolPromptGroups === undefined ? [...PROMPT_GROUP_IDS] : raw.toolPromptGroups;
+    if (!Array.isArray(selected) || selected.length > 100 || selected.some(id => !PROMPT_GROUP_IDS.has(id))) throw new Error('请选择有效的工具提示词组');
+    const selectedIds = new Set(selected);
+    const toolPromptGroups = [...PROMPT_GROUP_IDS].filter(id => selectedIds.has(id));
     // 兼容旧任务文本，但 tools 不再进入配置、调度判断或模型上下文。
     const prompt = String(raw.prompt ?? '').replaceAll('{{tools}}', '当前已启用的工具').trim();
     if (!prompt || prompt.length > 8000) throw new Error('唤醒提示词不能为空，最多 8000 字符');
     return { id, name: String(raw.name || '自定义唤醒').slice(0, 80), enabled: raw.enabled === true,
-      keys, events, intervalMinutes, cooldownSeconds, snapshotLimit, prompt,
+      keys, events, intervalMinutes, cooldownSeconds, snapshotLimit, toolPromptGroups, prompt,
       reference: Object.hasOwn(WAKE_PROMPT_REFERENCES, raw.reference) ? raw.reference : null };
   });
 }
@@ -116,11 +124,12 @@ export function createWakeRuleRuntime({ root, isAllowed, isActive, dispatch, red
     const data = event ? redact(JSON.stringify(safeWakeEvent(event))) : '{}';
     const values = { key, reason: source, time: new Date(clock).toISOString(), event: data };
     const accepted = dispatch(key, { ruleId: rule.id, revision: revision(rule), name: rule.name, source,
+      toolPromptGroups: [...rule.toolPromptGroups],
       prompt: renderWakeTemplate(rule.prompt, values),
       referencePrompt: rule.reference ? renderWakeTemplate(references()[rule.reference], values) : '', event: data });
     if (accepted !== false) lastEvent.set(bucket, clock);
   }
-  const view = () => ({ rules, active: isActive(), eventTypes: WAKE_EVENT_TYPES, references: references(),
+  const view = () => ({ rules, active: isActive(), eventTypes: WAKE_EVENT_TYPES, references: references(), promptGroups: WAKE_TOOL_PROMPT_GROUPS,
     prompts: Object.entries(DEFAULT_WAKE_PROMPTS).map(([id, defaultText]) => ({ id, label: WAKE_PROMPT_LABELS[id], text: prompts[id] ?? defaultText, defaultText })),
     schedules: rules.filter(r => r.enabled && r.intervalMinutes).map(r => ({ id: r.id, nextRunAt: nextDue.has(r.id) ? new Date(nextDue.get(r.id)).toISOString() : null })),
   });

@@ -2,7 +2,7 @@
 (() => {
   const host = document.getElementById('wakeManager');
   if (!host) return;
-  const state = { rules: [], prompts: [], eventTypes: [], references: {}, schedules: [], targets: [], draft: null, busy: false, promptId: 'message', builtinOpen: false };
+  const state = { rules: [], prompts: [], promptGroups: [], eventTypes: [], references: {}, schedules: [], targets: [], draft: null, busy: false, promptId: 'message', builtinOpen: false };
   const promptDrafts = new Map();
   const el = (tag, text, cls) => {
     const node = document.createElement(tag);
@@ -78,6 +78,7 @@
   function newRule(schedule) {
     state.draft = { id: crypto.randomUUID(), name: schedule ? '新的定时任务' : '新的事件唤醒', enabled: false, keys: [],
       events: schedule ? [] : ['message'], intervalMinutes: schedule ? 30 : 0, cooldownSeconds: 60, snapshotLimit: 10, reference: null,
+      toolPromptGroups: state.promptGroups.map(group => group.id),
       prompt: state.references[schedule ? 'proactive' : 'message'] || '结合 {{event}} 与会话 {{key}} 判断是否需要行动。' };
     render(); document.getElementById('wakeRuleEditor').scrollIntoView({ block: 'start' });
   }
@@ -96,6 +97,7 @@
       if (rule.intervalMinutes) triggers.push(`每 ${rule.intervalMinutes} 分钟`);
       info.append(el('p', triggers.join(' · '), 'meta'), el('p', rule.keys.join('、'), 'meta'));
       info.append(el('p', `事件快照：${rule.snapshotLimit ?? 1} 条`, 'meta'));
+      info.append(el('p', `工具提示词：${(rule.toolPromptGroups ?? state.promptGroups).length} 组`, 'meta'));
       const next = state.schedules.find(s => s.id === rule.id)?.nextRunAt;
       if (next) info.append(el('p', '下次定时检查：' + new Date(next).toLocaleString('zh-CN', { hour12: false }), 'meta'));
       const actions = el('div', undefined, 'wm-rule-actions');
@@ -147,6 +149,20 @@
       const preview = el('details', undefined, 'wm-reference'); preview.append(el('summary', '查看将注入的参考内容'), el('pre', state.references[draft.reference] || ''));
       preview.append(button('将参考内容放入编辑框', () => { draft.prompt = state.references[draft.reference]; draft.reference = null; render(); })); editor.append(preview);
     }
+    draft.toolPromptGroups ??= state.promptGroups.map(group => group.id);
+    const promptGroups = el('fieldset', undefined, 'wm-options'); promptGroups.id = 'wakeRuleToolPrompts';
+    promptGroups.append(el('legend', '本规则注入的工具提示词（可多选，默认全选）'));
+    for (const group of state.promptGroups) {
+      const check = checkbox(group.label, draft.toolPromptGroups.includes(group.id), checked => {
+        draft.toolPromptGroups = draft.toolPromptGroups.filter(id => id !== group.id);
+        if (checked) draft.toolPromptGroups.push(group.id);
+      });
+      check.querySelector('input').dataset.wakePromptGroup = group.id; promptGroups.append(check);
+    }
+    const promptActions = el('div', undefined, 'wm-toolbar');
+    promptActions.append(button('全选工具提示词', () => { draft.toolPromptGroups = state.promptGroups.map(group => group.id); render(); }),
+      button('清空工具提示词', () => { draft.toolPromptGroups = []; render(); }));
+    editor.append(promptGroups, promptActions, el('p', '只控制本规则唤醒时注入哪些工具组协议，随规则一起保存；不修改全局选择或工具开关。该组有可用工具时才注入，同时触发的多条规则合并各自所选协议。', 'meta'));
     const prompt = el('textarea'); prompt.id = 'wakeRulePrompt'; prompt.rows = 8; prompt.maxLength = 8000; prompt.value = draft.prompt;
     prompt.oninput = () => { draft.prompt = prompt.value; };
     editor.append(field('本规则提示词', prompt), el('p', '可用变量：{{key}} 当前会话、{{event}} 事件数据、{{time}} 触发时间、{{reason}} 触发原因。定时任务从保存开始计时，暂停期间不补跑。', 'meta'));

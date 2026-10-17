@@ -536,7 +536,10 @@ try {
     await page.waitForFunction(() => document.querySelector('#wakePromptSelect')?.options.length === 6);
     assert.equal(await page.locator('#tsGroups [data-tab="wake"]').count(), 0);
     await page.getByRole('button', { name: '新增定时任务', exact: true }).click();
+    assert.equal(await page.locator('[data-wake-prompt-group]:checked').count(), 19);
     await page.locator('#wakeRuleEditor label.wm-check').filter({ hasText: '群聊 123456789' }).locator('input').setChecked(true);
+    await page.getByRole('button', { name: '清空工具提示词', exact: true }).click();
+    await page.locator('[data-wake-prompt-group="memory"]').setChecked(true);
     await page.locator('#wakeRuleInterval').fill('5');
     await page.locator('#wakeRuleSnapshotLimit').fill('7');
     const body = await clickWrite('#wakeRuleEditor button:has-text("保存规则")', '/api/wake-rules');
@@ -544,6 +547,7 @@ try {
     assert.deepEqual(body.rules[0].events, []);
     assert.equal(body.rules[0].intervalMinutes, 5);
     assert.equal(body.rules[0].snapshotLimit, 7);
+    assert.deepEqual(body.rules[0].toolPromptGroups, ['memory']);
     assert.equal(body.rules[0].enabled, false);
     assert.equal(Object.hasOwn(body.rules[0], 'tools'), false);
     await page.waitForFunction(() => !document.getElementById('wakeRuleEditor'));

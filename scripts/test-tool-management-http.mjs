@@ -92,10 +92,64 @@ test('tool management API composes protocols, validates targets and isolates aut
     assert.equal(selection.status, 200);
     assert.deepEqual(selection.value.groups.filter(g => g.enabled).map(g => g.id), ['memory']);
     assert.equal(selection.value.groups.find(g => g.id === 'memory').text, oldGroups.find(g => g.id === 'memory').text);
+    // 上面构造的事件回合结束后，普通唤醒仍使用原有全局选择。
+    st.wakeRuleContexts = []; st.wakeRuleContextIds = []; st.wakeRulePromptGroups = null;
     const selectedPrompt = await request('/api/socialV2/prompt?key=group:456', undefined, true);
     assert.deepEqual(selectedPrompt.value.toolSuites.groups, ['memory']);
     assert.ok(selectedPrompt.value.enabledTools.includes('qq_set_wake_config'));
     assert.equal(JSON.stringify(h.cfg.socialV2), configBeforeSelection);
+  } finally {
+    if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+    await h.close();
+  }
+});
+
+test('rule-specific protocol selections override only their wake turn, merge and agree with qq_get_prompt', async () => {
+  const h = await bridgeHarness({ config: { socialV2: { wake: { batchWindowMs: 60000 } } } });
+  let server;
+  try {
+    h.setMode('reserved2'); server = h.startConsoleServer();
+    if (!server.listening) await new Promise(resolve => server.once('listening', resolve));
+    const key = 'group:456', st = h.getSocialV2State(key), base = `http://127.0.0.1:${server.address().port}`;
+    const request = async (url, body, agent = false) => {
+      const headers = { 'x-console-token': 'fixture-console-token', 'content-type': 'application/json' };
+      if (agent) { headers['x-agent-token'] = st.agentToken; headers['x-agent-call'] = '1'; }
+      const response = await fetch(base + url, { method: body ? 'POST' : 'GET', headers, body: body ? JSON.stringify(body) : undefined });
+      const value = await response.json(); assert.equal(response.status, 200, JSON.stringify(value)); return value;
+    };
+    await request('/api/socialV2/tool-prompts/selection', { selectedGroupIds: ['wake'] });
+    const globalFile = path.join(h.temp, 'state/tool-prompts.json'), original = fs.readFileSync(globalFile, 'utf8');
+    const config = JSON.stringify(h.cfg.socialV2);
+    const rule = { id: 'member-note', name: '记录成员变化', enabled: true, keys: [key], events: ['notice:group_increase'], prompt: '查看这次成员变化', cooldownSeconds: 10 };
+    const defaults = await request('/api/wake-rules', { rules: [rule] });
+    assert.equal(defaults.rules[0].toolPromptGroups.length, defaults.promptGroups.length);
+    const memory = { ...rule, toolPromptGroups: ['memory'] };
+    await request('/api/wake-rules', { rules: [memory] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    const wake = h.buildWakePromptV2(key, 'question');
+    assert.ok(wake.includes('【记忆卫生】')); assert.equal(wake.includes('【当前唤醒】'), false);
+    let current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['memory']);
+    assert.ok(current.enabledTools.includes('qq_set_wake_config'));
+    st.wakeRuleContexts[0] = { ...st.wakeRuleContexts[0], id: 'new-arrival-during-turn' };
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['memory'], '新到事件不能改变本轮已投递的协议选择');
+    const messages = { ...rule, id: 'member-greeting', toolPromptGroups: ['send'] };
+    await request('/api/wake-rules', { rules: [memory, messages] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual([...current.toolSuites.groups].sort(), ['memory', 'send']);
+    await request('/api/wake-rules', { rules: [{ ...memory, toolPromptGroups: [] }] });
+    h.wakeRules.event({ post_type: 'notice', notice_type: 'group_increase', group_id: 456 });
+    h.buildWakePromptV2(key, 'wakeRule');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, []); assert.equal(current.toolSuites.block, '');
+    await request('/api/wake-rules', { rules: [] });
+    h.buildWakePromptV2(key, 'question');
+    current = await request('/api/socialV2/prompt?key=' + key, undefined, true);
+    assert.deepEqual(current.toolSuites.groups, ['wake']);
+    assert.equal(fs.readFileSync(globalFile, 'utf8'), original); assert.equal(JSON.stringify(h.cfg.socialV2), config);
   } finally {
     if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
     await h.close();

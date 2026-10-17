@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createWakeRuleRuntime, normalizeWakeRules, safeWakeEvent } from '../src/wake-rules.js';
+import { createWakeRuleRuntime, normalizeWakeRules, safeWakeEvent, WAKE_TOOL_PROMPT_GROUPS } from '../src/wake-rules.js';
 import { DEFAULT_WAKE_PROMPTS } from '../src/wake-prompts.js';
 import { bridgeHarness } from './audit-bridge-harness.mjs';
 const rule = { id: 'event-wake', name: '群成员变化', enabled: true, keys: ['group:456'], events: ['message', 'notice:group_increase'], intervalMinutes: 1, cooldownSeconds: 10, prompt: '查看 {{key}}；事件 {{event}}；时间 {{time}}', reference: 'event' };
@@ -63,7 +63,7 @@ test('legacy tool-linked rules migrate without retaining a tool selector or tool
 }));
 
 test('unknown scopes, triggers, schedules and prompt shapes are rejected atomically', () => fixture(root => {
-  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }, { snapshotLimit: -1 }, { snapshotLimit: 101 }, { snapshotLimit: 1.5 }]) {
+  for (const patch of [{ keys: ['../456'] }, { intervalMinutes: 0.01 }, { cooldownSeconds: 0 }, { events: ['arbitrary:execute'] }, { prompt: '' }, { events: [], intervalMinutes: 0 }, { snapshotLimit: -1 }, { snapshotLimit: 101 }, { snapshotLimit: 1.5 }, { toolPromptGroups: null }, { toolPromptGroups: ['unknown'] }, { toolPromptGroups: 'memory' }]) {
     assert.throws(() => normalizeWakeRules([{ ...rule, ...patch }]));
   }
   const sent = [];
@@ -74,6 +74,17 @@ test('unknown scopes, triggers, schedules and prompt shapes are rejected atomica
   runtime.event({ post_type: 'notice', notice_type: 'group_increase' }); assert.equal(sent.length, 0, '归属不明的通知不广播');
   runtime.event({ post_type: 'meta_event', meta_event_type: 'heartbeat', status: { good: true } }); assert.equal(sent.length, 1);
   assert.equal(safeWakeEvent({ post_type: 'request', flag: 'private', accessToken: 'private' }).flag, undefined);
+}));
+
+test('each rule defaults to all prompt groups, preserves its own selection and still fires with none selected', () => fixture(root => {
+  assert.deepEqual(normalizeWakeRules([rule])[0].toolPromptGroups, WAKE_TOOL_PROMPT_GROUPS.map(g => g.id));
+  const sent = [];
+  const runtime = createWakeRuleRuntime({ root, isAllowed: () => true, isActive: () => true, dispatch: (_, context) => sent.push(context) });
+  runtime.replace([{ ...rule, toolPromptGroups: ['memory'] }, { ...rule, id: 'quiet-rule', toolPromptGroups: [] }]);
+  runtime.event({ post_type: 'message', group_id: 456 });
+  assert.deepEqual(sent.map(c => c.toolPromptGroups), [['memory'], []]);
+  const reloaded = createWakeRuleRuntime({ root, isAllowed: () => true, isActive: () => true, dispatch() {} });
+  assert.deepEqual(reloaded.view().rules.map(r => r.toolPromptGroups), [['memory'], []]);
 }));
 
 test('event snapshots use the requested latest count, include cooldown arrivals and isolate targets/types', () => fixture(root => {

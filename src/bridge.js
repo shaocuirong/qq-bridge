@@ -5612,7 +5612,7 @@ async function main() {
               hint: '可用 qq_list_voices 查看语音库，再用 qq_send_voice 把其中一个当语音发出去'
             },
             // 工具套件：只给"启用且组内至少一个 action 开"的组（docs/design/QQ_TOOL_SUITES_PLAN.md §8.3）
-            toolSuites: buildToolSuitesPromptV2()
+            toolSuites: buildToolSuitesPromptV2(key)
           });
           return;
         }
@@ -10794,9 +10794,17 @@ async function main() {
   }
 
   // 工具套件提示词：按当前开关算出"活跃组"，拼成注入块。纯读，失败不影响唤醒。
-  function buildToolSuitesPromptV2() {
+  function buildToolSuitesPromptV2(key = '', selectedGroups) {
     try {
       const prompts = readToolPrompts(ROOT);
+      if (key && selectedGroups === undefined) selectedGroups = getSocialV2State(key).wakeRulePromptGroups;
+      if (Array.isArray(selectedGroups)) {
+        // 规则自己的选择只在这一轮生效；不写全局开关，多条规则合批时取并集。
+        const selected = new Set(selectedGroups);
+        const active = activeToolGroups(cfg).filter(id => selected.has(id));
+        const scoped = Object.fromEntries(active.map(id => [id, { ...prompts[id], enabled: true }]));
+        return { groups: active, block: composePromptBlock(scoped, active) };
+      }
       const active = activeToolGroups(cfg).filter(id => prompts[id]?.enabled !== false);
       return { groups: active, block: composePromptBlock(prompts, active) };
     } catch (error) {
@@ -10847,10 +10855,12 @@ async function main() {
     if (wcTr.anyMessage) wcTriggers.push('任意消息');
     if (Number(wcTr.probability) > 0) wcTriggers.push(`概率${wcTr.probability}`);
     const wakeLine = `【当前唤醒】${wcMode}，${wcTime}${wcTriggers.length ? `；触发：${wcTriggers.join('/')}` : ''}\n\n`;
-    const toolSuites = buildToolSuitesPromptV2();
-    const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
     const wakeRuleContexts = activeWakeRuleContextsV2(key, st);
     st.wakeRuleContextIds = wakeRuleContexts.map(c => c.id);
+    // 固定本轮组选择：后续同规则事件替换待处理上下文时，qq_get_prompt 仍与已投递回合一致。
+    st.wakeRulePromptGroups = wakeRuleContexts.length ? [...new Set(wakeRuleContexts.flatMap(c => c.toolPromptGroups ?? []))] : null;
+    const toolSuites = buildToolSuitesPromptV2(key, st.wakeRulePromptGroups);
+    const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
     const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c => {
       const snapshot = wakeRules.snapshot(c.ruleId, key, c.revision);
       return '任务：' + c.name + '；来源：' + c.source + '\n' + c.referencePrompt + '\n' + c.prompt
@@ -10877,6 +10887,7 @@ async function main() {
     markReadCalledKeys.delete(key);
     wakeConfigMissCount.delete(key);
     const st = getSocialV2State(key);
+    st.wakeRulePromptGroups = null;
     if (reason?.kind === 'completed' && Array.isArray(st.wakeRuleContexts)) {
       const delivered = new Set(st.wakeRuleContextIds ?? []);
       st.wakeRuleContexts = st.wakeRuleContexts.filter(c => !delivered.has(c.id));
@@ -11261,6 +11272,7 @@ async function main() {
     if (Array.isArray(st.pendingWakeReasons)) st.pendingWakeReasons.length = 0;
     st.wakeRuleContexts = [];
     st.wakeRuleContextIds = [];
+    st.wakeRulePromptGroups = null;
   }
 
   function clearAllSocialV2Timers() {
