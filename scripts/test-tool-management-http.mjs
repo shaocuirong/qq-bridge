@@ -1,6 +1,42 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { test } from 'node:test';
 import { bridgeHarness } from './audit-bridge-harness.mjs';
+
+test('real console assets load with console authentication and reject anonymous or agent access', async () => {
+  const h = await bridgeHarness();
+  let server;
+  try {
+    fs.mkdirSync(path.join(h.temp, 'public'));
+    const assets = [['console-tools.js', 'text/javascript'], ['console-tools.css', 'text/css']];
+    for (const [name] of assets) fs.copyFileSync(new URL(`../public/${name}`, import.meta.url), path.join(h.temp, 'public', name));
+    h.setMode('reserved2'); server = h.startConsoleServer();
+    if (!server.listening) await new Promise(resolve => server.once('listening', resolve));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const agentToken = h.getSocialV2State('group:456').agentToken;
+    for (const [name, mime] of assets) {
+      const expected = fs.readFileSync(new URL(`../public/${name}`, import.meta.url), 'utf8');
+      // The browser loader sends its console token in the query, API clients use a header.
+      for (const options of [{ query: '?token=fixture-console-token' }, { headers: { 'x-console-token': 'fixture-console-token' } }]) {
+        const response = await fetch(`${base}/${name}${options.query ?? ''}`, { headers: options.headers });
+        assert.equal(response.status, 200, name);
+        assert.equal(response.headers.get('content-type'), `${mime}; charset=utf-8`);
+        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+        assert.equal(await response.text(), expected);
+      }
+      for (const query of ['', '?token=wrong-token']) {
+        const response = await fetch(`${base}/${name}${query}`);
+        assert.equal(response.status, 401); await response.text();
+      }
+      const agent = await fetch(`${base}/${name}`, { headers: { 'x-console-token': 'fixture-console-token', 'x-agent-token': agentToken, 'x-agent-call': '1' } });
+      assert.equal(agent.status, 403); await agent.text();
+    }
+  } finally {
+    if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+    await h.close();
+  }
+});
 
 test('tool management API composes protocols, validates targets and isolates automation administration', async () => {
   const h = await bridgeHarness({ config: { socialV2: { toolGroups: { groupInfo: { enabled: true } }, tools: { get_group_info: true }, wake: { batchWindowMs: 60000 } } } });

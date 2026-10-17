@@ -3808,12 +3808,6 @@ async function main() {
         return crypto.timingSafeEqual(a, b);
       })();
       if (consoleToken && !tokenMatches) {
-        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css'].includes(url.pathname)) {
-          const type = url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css';
-          res.writeHead(200, { 'content-type': `${type}; charset=utf-8`, ...SECURITY_HEADERS });
-          res.end(fs.readFileSync(path.join(ROOT, 'public', url.pathname.slice(1)), 'utf8'));
-          return;
-        }
         if (req.method === 'GET' && url.pathname === '/') {
           res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS });
           res.end('<!doctype html><meta charset="utf-8"><title>需要令牌</title><script>const t=prompt(\'请输入控制台访问令牌\');if(t)location.href=\'/?token=\'+encodeURIComponent(t);</script>');
@@ -3905,6 +3899,14 @@ async function main() {
             sendJson({ ok: false, error: '该接口仅控制台可用' }, 403);
             return;
           }
+        }
+        // 管理页资源与页面共用鉴权，必须在令牌校验和智能体管理面隔离之后提供。
+        if (req.method === 'GET' && ['/console-tools.js', '/console-tools.css'].includes(url.pathname)) {
+          const content = fs.readFileSync(path.join(ROOT, 'public', url.pathname.slice(1)), 'utf8');
+          const type = url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css';
+          res.writeHead(200, { 'content-type': `${type}; charset=utf-8`, ...SECURITY_HEADERS });
+          res.end(content);
+          return;
         }
         if (req.method === 'GET' && url.pathname === '/') {
           res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS });
