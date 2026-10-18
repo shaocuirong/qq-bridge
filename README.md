@@ -36,6 +36,20 @@
 >
 > 默认分支 `main` **就是**本版本，`git clone` 直接拿到，无需切换分支。
 
+## 本轮更新（2026-10，`main` 分支）
+
+> 以下功能已在 `main` 分支，尚未打新 tag / Release；`v0.2.0` 的 DSH 适配说明保持不变。
+
+- **事件与定时唤醒规则**：按触发条件决定目标——消息/私聊通知需要选择会话，群成员/群通知只需要群；申请、新增好友、网关状态和定时任务不需要目标会话，统一投递到管理员私聊会话（优先 `ownerQQ`，否则第一个私聊白名单）。申请事件携带一次性 `flag`，可直接用 `qq_friend_invoke` 处理好友/加群申请。
+- **随机定时**：定时任务除固定间隔外，还可填随机上限，形成 `[下限, 上限]` 分钟区间；每次触发后重新随机，上限为 0 或等于下限时保持固定。
+- **规则级「允许主动找机会」**：每条规则单独控制；开启后本轮除处理触发内容外，会话安静时也可主动开话题，关闭时保持原提示词行为。
+- **黑话按需注入**：只有 MCP「黑话与梗」组开启时才注入黑话表和【黑话】协议；组关闭时 `qq_get_prompt.slang.block` 为空、`qq_slang_*` 隐藏/403。自动提取候选与深度研究不受影响。
+- **上游事件日志**：`state/bridge.log` 新增 `[upstream] ← 类型 + 目标`，覆盖 `message` / `notice` / `request` / `meta_event`；只记类型和 ID，不记正文、申请 `flag`、`comment` 或文件名；消息/拍一拍/心跳有节流。
+- **控制台唤醒页**：规则搜索与筛选（状态、触发方式、目标类型、事件分类）、目标按群聊/私聊分组、全选/清空、规则页版本徽标。
+- **MCP 工具套件**：按工具组/动作开关，私有协议随活跃组注入；控制台可查看/编辑协议并试调用；配置说明见 [docs/guides/MCP_TOOLS_AND_WAKE.md](docs/guides/MCP_TOOLS_AND_WAKE.md)。
+
+离线回归：`npm run test:tools`、`npm run test:audit`（47 个脚本）、`npm run test:mcp-servers`。
+
 ```
 QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──► DSH Web API (127.0.0.1:3080/api)
                                                 ▲                      │
@@ -214,7 +228,9 @@ npm start          # 或双击 start.bat（守护模式：崩溃自动重启，�
 离线回归（使用临时目录和模拟服务，不读取真实配置、不发 QQ 消息）：
 
 ```bash
-npm run test:audit
+npm run test:audit       # 全量离线回归，当前 47 个脚本
+npm run test:tools       # 工具套件 / 唤醒规则 / 黑话开关 / 上游日志
+npm run test:mcp-servers # 三个 MCP server 的 stdio 接入
 ```
 
 reserved2 的 token 开销优化、消息水位协议、升级及回退说明（该专项分析为本地文档，未随仓库发布。）专项离线回归可运行 `npm run test:token`，已包含在上面的完整回归中。
@@ -245,7 +261,7 @@ qq-bridge/
   docs/
     README.md           # 文档索引（每篇一句话 + 是否仍然有效）
     FOLDER_MAP.md       # 目录结构与 scripts/ 命名约定
-    guides/             # 面向使用者/运维：PROJECT_GUIDE / DSH_SETUP / VOICE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING
+    guides/             # 面向使用者/运维：PROJECT_GUIDE / DSH_SETUP / MCP_TOOLS_AND_WAKE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING
     design/             # 设计与规划：GEN2_SIMULATION_PLAN / SOCIAL_MODE_PLAN / DSH_QQ_TOOLS_PLAN / 真人语感策略
     research/           # 调研：SnowLuma功能调研 / QQ消息免打扰 / 表情包能力 / 本地模型选型
     audits/             # 审查与优化报告（体检、控制台、token）
@@ -253,8 +269,18 @@ qq-bridge/
   audio/                # 语音库：把准备好的音频放这里，可作 QQ 语音发出（用法见 docs/README.md 文档索引）
   dsh/agent-presets/    # qq-chat / qq-chat-v2 的 DSH agent preset 模板
   plugins/qq-mode-console  # DSH 插件：注册 qq-mode 设置命名空间（仅 host 半，UI 卡片未实现）
+  prompts/tools/        # 各工具组私有协议（按活跃组注入；可在控制台编辑）
+  public/               # 控制台静态资源：console.html / console-tools.* / console-wake.* / console-simulation.js
   src/
     bridge.js           # 主程序
+    wake-rules.js       # 事件/定时唤醒规则、目标模式、随机调度
+    wake-prompts.js     # 既有唤醒场景文案
+    mcp-tool-suites.js  # MCP 工具套件注册/调用适配
+    tool-catalog.js     # SnowLuma 官方目录参数校验与会话字段补齐
+    tool-protocols.js   # 私有协议加载与活跃工具组
+    tool-prompts.js     # 协议存储、迁移与注入
+    qq-tool-groups.js   # 工具组/动作/参数/开关映射
+    upstream-events.js  # 上游事件类型日志与节流
     dsh-client.js       # Node 版 DSH API 客户端（WS 下行）
     md-to-plain.js      # Markdown → QQ 纯文本
     self-test.js        # DSH 侧自测

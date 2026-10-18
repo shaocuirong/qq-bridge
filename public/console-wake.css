@@ -1,6 +1,7 @@
 #wakeManager{line-height:1.6}
 .wm-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .wm-toolbar h3,.wm-toolbar p{flex:1;margin:0;min-width:180px}
+.wm-version{font-size:12px;color:var(--text-secondary,#65748a);border:1px solid var(--surface-chip-strong,#dfe5ec);border-radius:999px;padding:2px 9px;white-space:nowrap;flex:none}
 .wm-status{min-height:26px;font-size:13px;overflow-wrap:anywhere}
 .wm-panel{padding:20px;border:1px solid var(--surface-chip-strong,#dfe5ec);border-radius:14px;margin:16px 0;background:var(--surface-subtle,#fafbfe);min-width:0}
 .wm-panel h3{margin:0 0 10px}.wm-field{display:flex;flex-direction:column;gap:7px;margin:14px 0;font-size:13px;min-width:0}
@@ -8,8 +9,20 @@
 .wm-field textarea{min-height:180px;resize:vertical;line-height:1.65}
 .wm-check{display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0}
 .wm-check input{width:auto;flex:none;margin:0}
+.wm-flags{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:10px 14px;border:1px dashed var(--surface-chip-strong,#dfe5ec);border-radius:10px;margin:8px 0}
+.wm-flags h5{flex:0 0 100%;margin:0;font-size:12px;color:var(--text-secondary,#65748a);font-weight:600}
+.wm-flags .wm-check{margin:0}
+.wm-flags .wm-check:last-child{font-weight:600}
+.wm-filters{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:12px 0 4px;padding:12px 14px;border:1px solid var(--surface-chip-strong,#dfe5ec);border-radius:12px}
+.wm-filters .wm-field{margin:0;flex:0 1 170px;min-width:130px}
+.wm-filters .wm-field input,.wm-filters .wm-field select{width:100%}
+.wm-filters>button{align-self:flex-end}
+.wm-filter-count{margin-left:auto;align-self:flex-end;font-size:12px;color:var(--text-secondary,#65748a);white-space:nowrap}
 .wm-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:4px 16px;border:1px solid var(--surface-chip-strong,#dfe5ec);border-radius:10px;margin:18px 0;padding:12px 16px}
 .wm-options legend{font-size:13px;padding:0 6px}.wm-options .meta{grid-column:1/-1}
+.wm-target-group{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:4px 16px;border-top:1px dashed var(--surface-chip-strong,#dfe5ec);padding-top:8px}
+.wm-target-group h5{grid-column:1/-1;margin:0;font-size:12px;color:var(--text-secondary,#65748a);font-weight:600}
+.wm-target-actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
 .wm-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .wm-rule{display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid var(--surface-chip-strong,#dfe5ec);min-width:0}
 .wm-rule>div:first-child{min-width:0}.wm-rule h4{margin:0 0 6px;overflow-wrap:anywhere}.wm-rule p{margin:3px 0;overflow-wrap:anywhere}
@@ -17,4 +30,4 @@
 .wm-reference pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;font:inherit}
 .wm-empty{padding:16px 0;color:var(--text-secondary,#65748a);font-size:13px}
 #wakeRuleEditor{scroll-margin-top:90px}
-@media(max-width:700px){.wm-panel{padding:14px}.wm-fields{grid-template-columns:1fr;gap:0}.wm-rule{flex-direction:column;gap:8px}.wm-rule-actions{justify-content:space-between}.wm-toolbar>button{flex:1}}
+@media(max-width:700px){.wm-panel{padding:14px}.wm-fields{grid-template-columns:1fr;gap:0}.wm-rule{flex-direction:column;gap:8px}.wm-rule-actions{justify-content:space-between}.wm-toolbar>button{flex:1}.wm-filters .wm-field{flex:1 1 100%}.wm-filter-count{margin-left:0;align-self:flex-start}}

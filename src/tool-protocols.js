@@ -1,6 +1,6 @@
 // 全局协议保留在 preset persona；工具组私有协议独立存放并按配置内联。
 import fs from 'node:fs';
-import { GROUPS, actionEnabled, legacyToolEnabled } from './qq-tool-groups.js';
+import { GROUPS, actionEnabled, legacyToolEnabled, slangContextEnabled } from './qq-tool-groups.js';
 
 const DIRECTORY = new URL('../prompts/tools/', import.meta.url);
 export function defaultToolProtocol(groupId) {
@@ -11,9 +11,12 @@ export function defaultToolProtocol(groupId) {
 }
 
 export function activeToolGroups(cfg) {
-  return GROUPS.filter(g => g.risk !== 'never' && (
-    g.actions.some(a => actionEnabled(cfg, a)) || (g.legacyTools ?? []).some(t => legacyToolEnabled(cfg, t))
-  )).map(g => g.id);
+  return GROUPS.filter(g => g.risk !== 'never'
+    // 黑话组是纯 legacy 提示词组：组开关必须同时控制【黑话】协议是否注入。
+    // 其它 legacy 组（send/wake 等）的协议另有独立运行路径，保持原行为不变。
+    && (g.id !== 'slang' || slangContextEnabled(cfg))
+    && (g.actions.some(a => actionEnabled(cfg, a)) || (g.legacyTools ?? []).some(t => legacyToolEnabled(cfg, t)))
+  ).map(g => g.id);
 }
 
 export function resolveToolPrompt(group, entry) {

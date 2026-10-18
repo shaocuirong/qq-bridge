@@ -368,7 +368,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
   const toolPrompts = {};
   let wakeRulesState = [];
   const wakePromptOverrides = {};
-  const wakeView = () => ({ ok: true, rules: wakeRulesState, eventTypes: WAKE_EVENT_TYPES, promptGroups: GROUPS.map(({ id, label }) => ({ id, label })),
+  const wakeView = () => ({ ok: true, rules: wakeRulesState, eventTypes: WAKE_EVENT_TYPES, adminKey: 'private:123', promptGroups: GROUPS.map(({ id, label }) => ({ id, label })),
     references: { ...WAKE_PROMPT_REFERENCES, message: wakePromptOverrides.message ?? DEFAULT_WAKE_PROMPTS.message, proactive: wakePromptOverrides.proactiveCheck ?? DEFAULT_WAKE_PROMPTS.proactiveCheck }, schedules: [],
     prompts: Object.entries(DEFAULT_WAKE_PROMPTS).map(([id, defaultText]) => ({ id, label: WAKE_PROMPT_LABELS[id], text: wakePromptOverrides[id] ?? defaultText, defaultText })) });
   const file = htmlPath || resolve(projectRoot, original ? 'scripts/fixtures/console.before.html' : 'public/console.html');

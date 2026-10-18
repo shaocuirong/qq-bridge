@@ -2282,7 +2282,7 @@ button:active:not(:disabled) {
       </div></section>
 <section id="section-slang" data-page="slang" class="card span-all">
       <h2>群聊黑话 / 网络用语库</h2>
-      <div class="meta">DSH 会从群聊中自动提取疑似黑话候选；二代仿真模式下 AI 也可用 <code>qq_slang_submit</code> 主动提交陌生词。候选可批量送 DSH 深度联网研究，研究结果回到控制台由你删改修正后转正；确认后的词条会写入“黑话提示词”，注入一代/二代 AI 的聊天上下文，成为 AI 可查询和使用的记忆。</div>
+      <div class="meta">DSH 会从群聊中自动提取疑似黑话候选；二代仿真模式下 AI 也可用 <code>qq_slang_submit</code> 主动提交陌生词。候选可批量送 DSH 深度联网研究，研究结果回到控制台由你删改修正后转正；确认后的词条会写入“黑话提示词”；只有在 MCP 工具管理里开启「黑话与梗」组后，才会注入一代/二代 AI 的聊天上下文，成为 AI 可查询和使用的记忆。</div>
 
       <div class="slang-tabs">
         <button class="slang-tab active" data-slang-tab="candidate">候选词</button>
@@ -5479,9 +5479,9 @@ setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); 
   script.onerror = () => { document.getElementById('tsGroups').textContent = '工具管理模块加载失败，请刷新页面。'; };
   document.body.append(script);
   const wakeStyle = document.createElement('link');
-  wakeStyle.rel = 'stylesheet'; wakeStyle.href = '/console-wake.css?token=' + token; document.head.append(wakeStyle);
+  wakeStyle.rel = 'stylesheet'; wakeStyle.href = '/console-wake.css?token=' + token + '&v=20261018d'; document.head.append(wakeStyle);
   const wakeScript = document.createElement('script');
-  wakeScript.src = '/console-wake.js?token=' + token;
+  wakeScript.src = '/console-wake.js?token=' + token + '&v=20261018d';
   wakeScript.onerror = () => { document.getElementById('wakeManager').textContent = '唤醒管理模块加载失败。'; };
   document.body.append(wakeScript);
   const simulationScript = document.createElement('script');

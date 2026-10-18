@@ -538,18 +538,26 @@ try {
     await page.getByRole('button', { name: '新增定时任务', exact: true }).click();
     assert.equal(await page.locator('#wakeRuleToolPromptMode').inputValue(), 'inherit');
     assert.equal(await page.locator('[data-wake-prompt-group]:checked').count(), 19);
+    const proactive = page.locator('#wakeRuleEditor label.wm-check').filter({ hasText: '允许主动找机会' }).locator('input');
+    assert.equal(await proactive.isChecked(), false);
+    await proactive.setChecked(true);
     await page.locator('[data-wake-prompt-group="send"]').setChecked(false);
     assert.equal(await page.locator('#wakeRuleToolPromptMode').inputValue(), 'custom');
-    await page.locator('#wakeRuleEditor label.wm-check').filter({ hasText: '群聊 123456789' }).locator('input').setChecked(true);
+    // 定时任务不需要目标会话：目标区只有说明，没有可选的会话，保存时 keys 为空。
+    assert.match(await page.locator('#wakeRuleTargets legend').textContent(), /无需目标会话/);
+    assert.equal(await page.locator('#wakeRuleTargets label.wm-check').count(), 0);
     await page.getByRole('button', { name: '清空工具提示词', exact: true }).click();
     await page.locator('[data-wake-prompt-group="memory"]').setChecked(true);
     await page.locator('#wakeRuleInterval').fill('5');
+    await page.locator('#wakeRuleIntervalMax').fill('10');
     await page.locator('#wakeRuleSnapshotLimit').fill('7');
     const body = await clickWrite('#wakeRuleEditor button:has-text("保存规则")', '/api/wake-rules');
-    assert.deepEqual(body.rules[0].keys, ['group:123456789']);
+    assert.deepEqual(body.rules[0].keys, []);
     assert.deepEqual(body.rules[0].events, []);
     assert.equal(body.rules[0].intervalMinutes, 5);
+    assert.equal(body.rules[0].intervalMaxMinutes, 10);
     assert.equal(body.rules[0].snapshotLimit, 7);
+    assert.equal(body.rules[0].proactive, true);
     assert.deepEqual(body.rules[0].toolPromptGroups, ['memory']);
     assert.equal(body.rules[0].toolPromptMode, 'custom');
     assert.equal(body.rules[0].enabled, false);
@@ -560,6 +568,11 @@ try {
     await page.locator('#wakeBuiltinPrompt').fill('结合 {{key}} 判断是否回复。');
     assert.deepEqual(await clickWrite('#wakeBuiltin button:has-text("保存场景提示词")', '/api/wake-rules'), { prompts: { message: '结合 {{key}} 判断是否回复。' } });
     assert.equal(await page.locator('[data-wake-rule]').count(), 1);
+    await page.locator('#wakeRuleSearch').fill('不存在的规则');
+    await page.waitForFunction(() => document.querySelectorAll('[data-wake-rule]').length === 0);
+    assert.match(await page.locator('#wakeRuleFilterCount').textContent(), /显示 0 \/ 1/);
+    await page.locator('#wakeRuleSearch').fill('');
+    await page.waitForFunction(() => document.querySelectorAll('[data-wake-rule]').length === 1);
   });
 
   if (!original) await test('仿真页选择工具提示词，与工具开关和全局正文分别保存', async () => {

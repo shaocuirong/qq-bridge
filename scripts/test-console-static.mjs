@@ -74,10 +74,24 @@ if (!hasVoiceTool()) {
   catch (e) { ok(false, 'voice.html 前端 JS 可解析', e.message); }
 }
 
+console.log('## 独立唤醒页');
+const wakeUi = fs.readFileSync(path.join(ROOT, 'public', 'console-wake.js'), 'utf8');
+try { new Function(wakeUi); ok(true, '唤醒管理模块语法可解析'); }
+catch (e) { ok(false, '唤醒管理模块语法', e.message); }
+ok(/wakeRuleTargets/.test(wakeUi), '目标区按触发类型动态渲染');
+ok(/adminKey/.test(wakeUi), '无需目标的规则显示管理员会话');
+ok(/TARGET_MODE_LABELS/.test(wakeUi), '目标要求有可见标注');
+ok(/允许主动找机会/.test(wakeUi), '规则可定义是否主动找机会');
+ok(/wakeRuleSearch/.test(wakeUi) && /wakeRuleStatusFilter/.test(wakeUi) && /wakeRuleFilterCount/.test(wakeUi), '规则列表支持搜索与筛选');
+ok(/wakeRuleIntervalMax/.test(wakeUi) && /随机上限/.test(wakeUi), '定时任务支持随机范围');
+ok(/wm-flags/.test(wakeUi), '规则行为区把主动找机会放在显眼位置');
+ok(/规则页/.test(wakeUi), '唤醒页显示脚本版本，便于确认刷新生效');
+
 console.log('## fixture mock 覆盖');
 const fixture = fs.readFileSync(path.join(ROOT, 'scripts', 'console-ui-fixture.mjs'), 'utf8');
 ok(fixture.includes("case '/api/socialV2/voices'"), 'fixture mock 了 /api/socialV2/voices');
 ok(fixture.includes("case '/api/voice/send'"), 'fixture mock 了 /api/voice/send');
+ok(fixture.includes("adminKey: 'private:123'"), 'fixture 提供管理员会话');
 
 console.log(bad === 0 ? '\n全部通过' : `\n${bad} 项失败`);
 if (bad > 0) process.exit(1);

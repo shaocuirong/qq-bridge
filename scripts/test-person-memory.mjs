@@ -95,7 +95,14 @@ function ok(name) {
   records = r.records;
   assert.equal(records.length, 1);
   assert.deepEqual(records[0].groups.map((g) => g.id).sort(), ['group:1', 'group:2']);
+  // 两个名字计数相同，bestName 按最近使用时间打破平局；让「张三」计数更高，
+  // 避免测试依赖两次 upsert 是否落在同一毫秒（此前会随机返回「小张」）。
+  records[0].names.find((n) => n.name === '张三').count = 2;
   assert.equal(bestName(records[0]), '张三');
+  assert.equal(bestName({ names: [
+    { name: '旧名', count: 1, lastAt: '2026-01-01T00:00:00.000Z' },
+    { name: '新名', count: 1, lastAt: '2026-01-02T00:00:00.000Z' }
+  ] }), '新名');
   assert.equal(findPerson(records, '10001')?.id, '10001');
   assert.equal(findPerson(records, '99999'), null);
   ok('upsertPerson 按 QQ 号跨群合并为同一条档案');

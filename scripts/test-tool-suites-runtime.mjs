@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { GROUPS, toolsToRegister, defaultConfig, enabledToolNames } from '../src/qq-tool-groups.js';
+import { GROUPS, toolsToRegister, defaultConfig, enabledToolNames, keyKindOkFor } from '../src/qq-tool-groups.js';
 import { registerToolSuites } from '../src/mcp-tool-suites.js';
 import { prepareActionParams, actionCatalog, actionReadOnly } from '../src/tool-catalog.js';
 import { activeToolGroups, defaultToolProtocol } from '../src/tool-protocols.js';
@@ -47,6 +47,15 @@ test('real MCP schemas list and call independent and combined tools, preserving 
     const invalid = await client.callTool({ name: 'qq_group_collab_invoke', arguments: { ...common, action: 'set_group_kick', params: {} } });
     assert.equal(invalid.isError, true); assert.equal(calls.length, before);
   } finally { await client.close(); await server.close(); }
+});
+
+test('request approval actions can run from the owner private session, group-scoped writes cannot', () => {
+  // 申请处理发生在管理员私聊会话里：flag 本身已经限定目标，不需要 group: key。
+  for (const action of ['set_group_add_request', 'get_group_ignore_add_request', 'get_group_ignored_notifies', 'set_friend_add_request']) {
+    assert.equal(keyKindOkFor(action, 'private:123'), true, action);
+  }
+  assert.equal(keyKindOkFor('set_group_ban', 'private:123'), false);
+  assert.equal(keyKindOkFor('set_group_add_request', 'group:456'), true);
 });
 
 test('official schemas supply session IDs, preserve falsy values and reject missing/wrong parameters', () => {

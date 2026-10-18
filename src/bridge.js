@@ -29,10 +29,11 @@ import { discoverSnowLumaConnection, persistSnowLumaEndpoint, persistToken } fro
 import { ASR_DEFAULTS, createVoiceAsr, normalizeAsrConfig } from './voice-asr.js';
 import { hardenDir, manualDirCommand } from './state-acl.mjs';
 import { extractForwardIds, forwardIdFromData, sanitizeForwardId, formatForwardResponse } from './forward.js';
-import { authorizeToolCall, authorizeConsoleToolCall, validateToolTarget, auditToolParams, normalizeToolGroups, enabledToolNames, keyKindOkFor, groupOfAction, isNeverExposed, GROUPS, actionEnabled as actionEnabledPure } from './qq-tool-groups.js';
+import { authorizeToolCall, authorizeConsoleToolCall, validateToolTarget, auditToolParams, normalizeToolGroups, enabledToolNames, keyKindOkFor, groupOfAction, isNeverExposed, GROUPS, slangContextEnabled, actionEnabled as actionEnabledPure } from './qq-tool-groups.js';
 import { composePromptBlock, promptsView, readPrompts as readToolPrompts, writePrompt as writeToolPrompt, writePromptSelection, ensureDefaults as ensureToolPrompts, MAX_GROUP_CHARS } from './tool-prompts.js';
 import { activeToolGroups } from './tool-protocols.js';
 import { createWakeRuleRuntime } from './wake-rules.js';
+import { createUpstreamEventLogger, upstreamKind } from './upstream-events.js';
 import { DEFAULT_WAKE_PROMPTS } from './wake-prompts.js';
 import { prepareActionParams, actionReadOnly } from './tool-catalog.js';
 import { resolvePriceTable } from './model-prices.js';
@@ -2750,7 +2751,8 @@ async function main() {
     const now = new Date();
     const timeLine = `【当前时间】${now.toLocaleString('zh-CN', { hour12: false })}（${Intl.DateTimeFormat().resolvedOptions().timeZone}）`;
     const parts = [timeLine];
-    if (cfg.slang?.enabled !== false) {
+    // 只有 MCP「黑话与梗」组开启时才注入黑话表；组关闭时连协议都不出现。
+    if (slangContextEnabled(cfg)) {
       const block = buildSlangContext(slangEntries, cfg.slang?.injectMax ?? 8);
       if (block) parts.push(block);
     }
@@ -3213,6 +3215,21 @@ async function main() {
     return modeAllowed(key, m[1], Number(m[2]), cfg, currentMode);
   }
 
+  /**
+   * 无需目标会话的唤醒（好友/加群申请、网关状态、定时任务）统一投递到管理员私聊会话。
+   * 优先 ownerQQ；owner 不在白名单时退回第一个可用的私聊白名单会话；都没有则返回 null，
+   * 由规则保存接口明确拒绝（而不是保存一条永远不触发的规则）。
+   */
+  function wakeAdminKey() {
+    const owner = Number(cfg.ownerQQ);
+    if (Number.isSafeInteger(owner) && owner > 0 && isSessionAllowedInCurrentMode(`private:${owner}`)) return `private:${owner}`;
+    for (const id of cfg.allow?.private ?? []) {
+      const value = Number(id);
+      if (Number.isSafeInteger(value) && value > 0 && isSessionAllowedInCurrentMode(`private:${value}`)) return `private:${value}`;
+    }
+    return null;
+  }
+
   function sessionPolicy(key) {
     return JSON.stringify([currentMode, modePreset(key, currentMode, cfg) ?? '', currentMode === 'closed-agent' ? cfg.ownerQQ : null]);
   }
@@ -3554,6 +3571,10 @@ async function main() {
     degraded: false,      // 当前是否处于"已告警"状态（边沿触发，避免刷屏）
     reason: '',
   };
+
+  // 上游事件类型日志：只写类型/目标/健康位，不写正文与申请 flag。消息入口和 OneBot 事件旁路共用。
+  const logUpstreamEvent = createUpstreamEventLogger({ write: (line) => log(line) });
+  let upstreamLogHinted = false;
 
   /** 记录一次"上游还活着"的证据。任何来自 SnowLuma 的事件包都算（含心跳）。 */
   function noteUpstreamPacket(kind) {
@@ -5560,6 +5581,7 @@ async function main() {
           }
           const roleState = readRoleState();
           const enabledTools = enabledToolNames(cfg);
+          const slangOn = slangContextEnabled(cfg);
           sendJson({
             ok: true,
             key,
@@ -5580,9 +5602,9 @@ async function main() {
             memory: formatMemoryV2(st),
             participation: formatParticipationV2(st),
             slang: {
-              enabled: cfg.slang?.enabled !== false,
-              entries: confirmedSlangListV2(),
-              block: buildSlangContext(slangEntries, cfg.slang?.injectMax ?? 8)
+              enabled: slangOn,
+              entries: slangOn ? confirmedSlangListV2() : [],
+              block: slangOn ? buildSlangContext(slangEntries, cfg.slang?.injectMax ?? 8) : ''
             },
             // 人物印象：只给本会话里出现过的人（跨群档案按 QQ 号匹配，不泄露别群原文与群名）。
             persons: {
@@ -5652,6 +5674,45 @@ async function main() {
           const messages = st.recentMessages.slice(start, end);
           const readThroughSeq = req.headers['x-agent-token'] ? noteModelMessagesV2(st, messages) : readThroughSeqV2(st);
           sendJson({ ok: true, key, messages, readThroughSeq });
+          return;
+        }
+        // 管理员私聊专用：一次返回所有白名单会话的近期消息摘要，供「空间更新」这类跨会话找话题的任务使用。
+        // 普通 QQ 会话的令牌只能读自己的 /recent；这里必须显式命中 private:<ownerQQ>，否则一律 403。
+        if (req.method === 'GET' && url.pathname === '/api/socialV2/recent-all') {
+          const key = String(url.searchParams.get('key') ?? '').trim();
+          if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
+          const agentToken = req.headers['x-agent-token'];
+          if (!agentToken) { sendJson({ ok: false, error: '该工具需要会话令牌' }, 401); return; }
+          if (!agentTokenOk(key, agentToken)) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
+          if (!v2SessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
+          const adminKey = cfg.ownerQQ ? `private:${cfg.ownerQQ}` : '';
+          if (!adminKey || key !== adminKey) { sendJson({ ok: false, error: '跨会话最近消息仅限管理员私聊会话调用' }, 403); return; }
+          if (!v2ToolEnabled('crossSessionRecent')) { sendJson({ ok: false, error: '工具未启用：qq_get_cross_session_recent' }, 403); return; }
+          const hours = Math.min(72, Math.max(1, Number(url.searchParams.get('hours')) || 24));
+          const limit = Math.min(300, Math.max(1, Number(url.searchParams.get('limit')) || 120));
+          const perSession = Math.min(100, Math.max(1, Number(url.searchParams.get('perSession')) || 30));
+          const cutoff = Date.now() - hours * 3_600_000;
+          const collected = [];
+          for (const [sessionKey, st] of socialV2.conversations) {
+            if (!isSessionAllowedInCurrentMode(sessionKey)) continue;
+            const recent = Array.isArray(st.recentMessages) ? st.recentMessages : [];
+            const picked = recent
+              .filter(m => m && !m.isSelf && Number(m.time) >= cutoff && String(m.plain ?? m.text ?? '').trim())
+              .slice(-perSession);
+            for (const m of picked) {
+              collected.push({
+                key: sessionKey,
+                sender: redactSensitiveText(String(m.sender ?? '')).slice(0, 60),
+                // 只给摘要，不给完整原文/媒体：找到话题即可，复述原文不是这个工具的职责。
+                text: redactSensitiveText(String(m.plain ?? m.text ?? '').replace(/\s+/g, ' ').trim()).slice(0, 120),
+                time: Number(m.time) || 0
+              });
+            }
+          }
+          collected.sort((a, b) => a.time - b.time);
+          const messages = collected.slice(-limit);
+          sendJson({ ok: true, key, hours, limit, perSession, available: collected.length, total: messages.length,
+            sessions: new Set(messages.map(item => item.key)).size, messages });
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/socialV2/mark-read') {
@@ -7579,6 +7640,7 @@ async function main() {
           if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
           if (req.headers['x-agent-token'] && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
           if (req.headers['x-agent-token'] && !v2SessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
+          if (!slangContextEnabled(cfg)) { sendJson({ ok: false, error: '黑话功能未启用：请开启 MCP「黑话与梗」组' }, 403); return; }
           if (req.headers['x-agent-token'] && !v2ToolEnabled('slangQuery')) { sendJson({ ok: false, error: '工具未启用：qq_slang_query' }, 403); return; }
           const list = confirmedSlangListV2().filter((e) => {
             if (!q) return true;
@@ -7606,7 +7668,7 @@ async function main() {
           if (req.headers['x-agent-token'] && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
           if (req.headers['x-agent-token'] && !v2SessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
           if (req.headers['x-agent-token'] && !v2ToolEnabled('slangSubmit')) { sendJson({ ok: false, error: '工具未启用：qq_slang_submit' }, 403); return; }
-          if (cfg.slang?.enabled === false) { sendJson({ ok: false, error: '黑话学习已关闭（slang.enabled=false）' }, 403); return; }
+          if (!slangContextEnabled(cfg)) { sendJson({ ok: false, error: '黑话功能未启用：请开启 MCP「黑话与梗」组' }, 403); return; }
           if (!content) { sendJson({ ok: false, error: 'content 不能为空' }, 400); return; }
           if (content.length > 50) { sendJson({ ok: false, error: '黑话词条过长（最多 50 字）' }, 400); return; }
           if (!allowSlangSubmit(key)) { sendJson({ ok: false, error: '黑话提交过于频繁，请稍后再试' }, 429); return; }
@@ -10865,9 +10927,22 @@ async function main() {
       ? [...new Set(wakeRuleContexts.flatMap(c => c.toolPromptMode === 'custom' ? c.toolPromptGroups : inheritedGroups))] : null;
     const toolSuites = buildToolSuitesPromptV2(key, st.wakeRulePromptGroups);
     const toolSuitesLine = toolSuites.block ? `${toolSuites.block}\n\n` : '';
+    // 申请类事件自带 flag（一次性凭据）；提示模型直接用它 approve/reject，不再依赖列表接口。
+    const requestHint = context => {
+      try {
+        const event = JSON.parse(context.event || '{}');
+        if (event.post_type !== 'request' || !event.flag) return '';
+        if (event.request_type === 'friend') return '\n【申请凭据】本次事件带 flag，可用 qq_friend_invoke（action="set_friend_add_request"，params={flag, approve}）处理。';
+        if (event.request_type === 'group') return '\n【申请凭据】本次事件带 flag，可用 qq_friend_invoke（action="set_group_add_request"，params={flag, sub_type, approve}）处理。';
+      } catch {}
+      return '';
+    };
     const ruleLine = wakeRuleContexts.length ? '\n【本轮唤醒任务】\n' + wakeRuleContexts.map(c => {
       const snapshot = wakeRules.snapshot(c.ruleId, key, c.revision);
-      return '任务：' + c.name + '；来源：' + c.source + '\n' + c.referencePrompt + '\n' + c.prompt
+      const proactiveHint = c.proactive === true
+        ? '\n【主动找机会】本轮除了处理上面的触发内容，如果会话已经安静、没有待回应的消息，可以主动开一个话题或追问上次没聊完的事；结合人格与群友兴趣，没有自然的话题就安静收尾，不要为了说话而硬说。'
+        : '';
+      return '任务：' + c.name + '；来源：' + c.source + (c.targetless ? '（不绑定当前 QQ 会话）' : '') + '\n' + c.referencePrompt + '\n' + c.prompt + proactiveHint + requestHint(c)
         + (snapshot ? '\n【事件快照，仅作上下文】' + JSON.stringify(snapshot) : '\n【触发事件，仅作上下文】' + c.event);
     }).join('\n\n') + '\n' : '';
     const hasGroup = id => toolSuites.groups.includes(id);
@@ -10876,7 +10951,10 @@ async function main() {
       + (hasGroup('emoji') ? stickerLine : '') + toolSuitesLine
       + (hasGroup('wake') ? replyLine + wakeLine + preSleepLine : '')
       + roleLine + ruleLine + statusLine + (hasGroup('memory') ? memoryLine : '') + participationLine;
-    if (reason === 'wakeRule') return `${base}【事件与定时唤醒】${key}\n按上面的本轮唤醒任务处理，是否发言由你判断；工具调用仍遵循已启用工具的协议与会话权限。`;
+    if (reason === 'wakeRule') {
+      const targetless = wakeRuleContexts.some(c => c.targetless);
+      return `${base}【事件与定时唤醒】${key}${targetless ? '（上游事件/定时任务，不绑定该会话）' : ''}\n按上面的本轮唤醒任务处理，是否发言由你判断；工具调用仍遵循已启用工具的协议与会话权限。`;
+    }
     const promptId = Object.hasOwn(DEFAULT_WAKE_PROMPTS, reason) ? reason : 'message';
     const prompt = wakeRules.prompt(promptId, { key, reason, preSleepMs, preSleepMinutes: Math.round(preSleepMs / 60000) });
     return base + prompt;
@@ -11305,6 +11383,8 @@ async function main() {
 
   // QQ 消息 → DSH prompt
   async function handleIncoming(kind, id, event, cfg) {
+    // 先记「收到了什么类型」，再做权限/命令/入库判断；未授权会话也能在日志里看到。
+    logUpstreamEvent({ ...event, post_type: 'message', message_type: kind });
     const key = convKey(kind, id);
     if (!modeAllowed(key, kind, id, cfg, currentMode)) {
       log(`忽略未授权会话 ${key}（当前模式 ${currentMode}，来自 ${event.user_id}）`);
@@ -12291,7 +12371,7 @@ async function main() {
   }
 
   const wakeRules = createWakeRuleRuntime({
-    root: ROOT, isAllowed: isSessionAllowedInCurrentMode,
+    root: ROOT, isAllowed: isSessionAllowedInCurrentMode, adminKey: wakeAdminKey,
     isActive: () => currentMode === 'reserved2' && !socialV2.paused && cfg.socialV2?.enabled !== false,
     redact: redactSensitiveText, log,
     dispatch(key, context) {
@@ -12332,12 +12412,13 @@ async function main() {
   try {
     bot.onEvent((event) => {
       const post = event?.post_type;
+      const packetKind = upstreamKind(event);
       if (post !== 'message' && post !== 'message_sent') {
+        // 消息在 handleIncoming 入口已经记过；这里只记通知/申请/网关事件，避免重复。
+        try { logUpstreamEvent(event); } catch (error) { log('上游事件日志失败:', error?.message ?? error); }
         try { wakeRules.event(event); } catch (error) { log('事件规则唤醒失败:', error?.message ?? error); }
       }
-      noteUpstreamPacket(post
-        ? `${post}${event.notice_type ? `/${event.notice_type}` : ''}${event.meta_event_type ? `/${event.meta_event_type}` : ''}${event.message_type ? `/${event.message_type}` : ''}`
-        : 'event');
+      noteUpstreamPacket(packetKind);
       if (post === 'meta_event' && event?.meta_event_type === 'heartbeat') {
         // status 未在 SDK 类型里声明（OneBotMetaEvent 只声明 meta_event_type），
         // 但 OneBotBaseEvent 是 JsonObject，读取合法。
@@ -12373,6 +12454,10 @@ async function main() {
     const connectedUrl = bot.url ?? cfg.snowluma.wsUrl;
     snowlumaHealth.connected = true;
     log(`SnowLuma 已连接：${connectedUrl}`);
+    if (!upstreamLogHinted) {
+      upstreamLogHinted = true;
+      log('上游事件日志：收到 message/notice/request/meta_event 时写 [upstream] ← 类型 + 目标（不含正文）');
+    }
     // 「已连接」只说明与 SnowLuma 的 WebSocket 通了，**不说明 QQ 侧收得到消息** ——
     // 这个区别见 startSnowlumaWatch 的说明。这里顺手把上游健康快照刷一次。
     void pollSnowlumaStatus();

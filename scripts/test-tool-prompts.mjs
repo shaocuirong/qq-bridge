@@ -113,7 +113,7 @@ ok('每组带 legacyTools，旧 flag 缺省即开', () => {
   const cfg = defaultConfig();
   const view = promptsView(root, cfg);
   const all = view.flatMap((g) => g.legacyTools);
-  assert.equal(all.length, 40);
+  assert.equal(all.length, 41);
   assert.equal(all.filter(t => t.flag !== 'sendVoice' && t.flag !== 'setStickerRemark').every(t => t.enabled === true), true);
   assert.equal(all.find(t => t.name === 'qq_send_voice').enabled, false);
   assert.equal(all.find(t => t.name === 'qq_set_sticker_remark').enabled, false);

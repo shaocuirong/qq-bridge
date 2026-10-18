@@ -31,6 +31,7 @@ import * as toolCatalog from '../src/tool-catalog.js';
 import * as toolProtocols from '../src/tool-protocols.js';
 import * as wakeRulesLib from '../src/wake-rules.js';
 import * as wakePromptsLib from '../src/wake-prompts.js';
+import * as upstreamEvents from '../src/upstream-events.js';
 import { renderPatch as renderPresetBundlePatch } from './build-agent-preset-patches.mjs';
 import * as roleCard from '../src/role-card.js';
 import * as presetPromptLib from '../src/preset-prompt.js';
@@ -167,7 +168,7 @@ export async function bridgeHarness({ config = {}, savedState, globals = {} } = 
     SnowLumaWebSocketClient: FakeBot, text: (s) => s,
     discoverDshLaunchToken: () => '', unwrap, createTurnCollector,
     ...markdown, ...sensitive, ...wait, ...safeFetch, ...forward, ...slang, ...personMemory, ...sticker,
-    ...modelPrices, ...tokenLedger, ...voiceLib, ...stateAcl, ...waitLock, ...qqToolGroups, ...toolPrompts, ...toolCatalog, ...toolProtocols, ...wakeRulesLib, ...wakePromptsLib, ...roleCard, ...presetPromptLib, renderPresetBundlePatch,
+    ...modelPrices, ...tokenLedger, ...voiceLib, ...stateAcl, ...waitLock, ...qqToolGroups, ...toolPrompts, ...toolCatalog, ...toolProtocols, ...wakeRulesLib, ...wakePromptsLib, ...upstreamEvents, ...roleCard, ...presetPromptLib, renderPresetBundlePatch,
     readToolPrompts: toolPrompts.readPrompts, writeToolPrompt: toolPrompts.writePrompt,
     ensureToolPrompts: toolPrompts.ensureDefaults, actionEnabledPure: qqToolGroups.actionEnabled,
     // 入站语音识别（ASR）：纯函数照实给（配置归一化/规范 WAV 判定），但 createVoiceAsr 默认**桩掉** ——

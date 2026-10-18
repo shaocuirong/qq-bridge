@@ -28,13 +28,30 @@ QQ messages ──► SnowLuma (OneBot v11 WS) ──► qq-bridge ──► DSH
 
 - Bridges QQ group/private messages to DSH agent sessions.
 - Social simulation mode ("simulated group friend") with idle/active/probing/exiting states.
+- Event-driven and scheduled wake rules with target modes (session / group-only / no target), cooldowns, event snapshots and per-rule tool-protocol selection.
+- Random schedule ranges: a rule can fire anywhere between a minimum and maximum interval and re-rolls after every trigger.
+- Per-rule "allow proactive opportunity" switch, so a rule may start a topic when the conversation is quiet, or stay strictly task-only.
 - Space-based message splitting for more natural multi-message replies.
 - Whitelist/blacklist access control, fail-closed by default.
 - Sensitive text audit prevents paths/credentials from being sent to QQ.
-- MCP tools for reading group history/members, sending messages, replying with quotes, and (in `reserved2`) full simulated-group-friend tooling.
-- Slang/network-expression learning with human confirmation.
+- MCP tool suites grouped by topic, with group/action switches, private protocols injected only for active groups, and a console test-call path.
+- Friend/group request handling from the administrator private session using the one-time `flag` carried by the request wake.
+- Slang/network-expression learning with human confirmation; the slang table is injected only when the MCP **黑话与梗** group is enabled.
+- Upstream event-type logging in `state/bridge.log` (`[upstream] ← message/notice/request/meta_event + ids`), without message bodies or request flags.
 - Lightweight memory system for active topics, pending thoughts and member impressions.
 - Sticker library integration with AI-friendly sticker usage.
+
+## What's new (Oct 2026, `main`)
+
+- **Wake rules by event type**: message/private-notification events keep their target sessions; group-member/group-notice events only accept groups; friend/group requests, gateway status and schedules need no target and are delivered to the administrator private session.
+- **Request handling**: request wakes carry the one-time `flag`; `qq_friend_invoke` can approve/reject both friend and group requests from the admin private session.
+- **Random schedules**: `[min, max]` minutes, re-rolled after each trigger; `max = 0` or `max = min` keeps the fixed interval.
+- **Proactive opportunity per rule**: opt in per rule; when off, the original prompt is left untouched.
+- **Slang on demand**: slang table/protocol and `qq_slang_*` are only exposed when the MCP **黑话与梗** group is on; extraction/research still follow `slang.enabled`.
+- **Upstream event log**: message/notice/request/meta-event types and target IDs, throttled for messages, pokes and heartbeats, with no payload text.
+- **Console wake page**: rule search/filtering, grouped group/private targets, bulk select/clear, version badge, and a clearer per-rule proactive switch.
+
+Offline regression: `npm run test:tools`, `npm run test:audit` (47 scripts), `npm run test:mcp-servers`.
 
 ## Requirements
 
@@ -117,9 +134,13 @@ qq-bridge/
   dsh/agent-presets/    # qq-chat / qq-chat-v2 DSH agent preset templates
   plugins/qq-agent-presets  # DSH bundle: generates the qq-chat / qq-chat-v2 preset patch rows + the shared tool guard
   plugins/qq-mode-console  # DSH plugin: exposes the qq-mode settings namespace (host half only; no UI card yet)
-  src/                  # bridge core and MCP servers
+  prompts/tools/        # per-group private protocols, injected for active groups (editable in the console)
+  src/                  # bridge core, wake rules, tool suites, MCP servers and upstream-event logging
   public/
     console.html        # local web console
+    console-tools.*     # MCP tool-suite management
+    console-wake.*      # event/scheduled wake rules
+    console-simulation.js
   roles/                # persona cards
   assets/               # images (the intro video ships as a release asset, not in the repo)
   scripts/              # tests and helper scripts
@@ -132,7 +153,7 @@ lives in the sibling folder **`../voice-tool/`** — it only needs SnowLuma, and
 
 ## Testing
 
-`npm run test:audit` runs isolated regression tests without production credentials, DSH, or QQ messages. The detailed audit is in [docs/audits/AUDIT_REPORT_2026-09-20.md](docs/audits/AUDIT_REPORT_2026-09-20.md) (Chinese); the 2026-09-18 one it superseded is archived in [docs/legacy/](docs/legacy/).
+`npm run test:audit` runs the full isolated regression suite (currently 47 scripts) without production credentials, DSH, or QQ messages. `npm run test:tools` focuses on the MCP tool suites, wake rules, slang gating and upstream logging; `npm run test:mcp-servers` checks the three stdio MCP servers. The detailed audit is in [docs/audits/AUDIT_REPORT_2026-09-20.md](docs/audits/AUDIT_REPORT_2026-09-20.md) (Chinese); the 2026-09-18 one it superseded is archived in [docs/legacy/](docs/legacy/).
 
 After upgrading, legacy QQ session mappings without permission metadata are recreated once. Mode or preset changes also retire the old mapping and recreate the session on the next message; DSH history is retained.
 

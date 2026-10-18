@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import { test } from 'node:test';
 import { z } from 'zod';
 import { registerToolSuites } from '../src/mcp-tool-suites.js';
+import { slangContextEnabled } from '../src/qq-tool-groups.js';
 
 function loadWebTools(safeFetch) {
   const tools = new Map();
@@ -104,6 +105,7 @@ function loadSnowlumaTools(fetchImpl, fixtureConfig = null) {
     SENSITIVE_RE: { test: () => false },
     serializeModelData: (value) => JSON.stringify(value),
     registerToolSuites,
+    slangContextEnabled,
   });
   return async (name, arguments_ = {}) => {
     const tool = tools.get(name);

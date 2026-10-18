@@ -180,7 +180,7 @@ export const GROUPS = [
     ],
     channelTool: { name: 'qq_friend_invoke', description: '好友相关写操作（处理申请/改备注/分组/删好友），需显式指定 action。' },
     legacyTools: [],
-    defaultPrompt: '【好友与资料】想知道"这人是谁"时用 qq_get_stranger（id 必须来自本会话），别去猜。加好友/删好友/处理申请是 owner 的事，未经明确同意不要动。',
+    defaultPrompt: '【好友与资料】想知道"这人是谁"时用 qq_get_stranger（id 必须来自本会话），别去猜。加好友/删好友是 owner 的事，未经明确同意不要动。【处理申请】申请唤醒的事件里带 flag：好友申请用 qq_friend_invoke(action="set_friend_add_request", params={flag, approve})，加群申请同样用 qq_friend_invoke(action="set_group_add_request", params={flag, sub_type, approve})。',
   },
   {
     id: 'emoji',
@@ -370,6 +370,7 @@ export const GROUPS = [
     legacyTools: [
       { name: 'qq_get_prompt', flag: 'getPrompt', description: '看角色卡/推荐值/工具清单/唤醒配置' },
       { name: 'qq_social_state', flag: 'socialState', description: '看未读数/上次唤醒原因' },
+      { name: 'qq_get_cross_session_recent', flag: 'crossSessionRecent', description: '管理员专用：一次看所有会话最近消息摘要' },
       { name: 'qq_set_wake_config', flag: 'setWakeConfig', description: '设置唤醒与潜水条件' },
       { name: 'qq_wait_for_messages', flag: 'waitMessages', description: '等待新消息（长轮询）' },
       { name: 'qq_report_feedback', flag: 'feedback', description: '把问题反馈给管理端' },
@@ -516,9 +517,16 @@ export function defaultPromptOf(id) {
  * 规则刻意保守：**action 名里带 group 的，必须给 group: key**；其余放行。
  * 误判方向是"拒绝"而不是"用错 id 发出去"，符合 Review Focus 3。
  */
+// 这些 action 名字里带 group，但目标是 flag/全局列表，不要求 group: 会话；
+// 申请处理发生在管理员私聊会话里，必须放行，否则 bridge 永远批不了加群申请。
+const PRIVATE_KEY_GROUP_ACTIONS = new Set([
+  'set_group_add_request',
+  'get_group_ignore_add_request',
+  'get_group_ignored_notifies',
+]);
 export function keyKindOkFor(action, key) {
   const k = String(key ?? '');
-  if (/group/i.test(String(action ?? ''))) return k.startsWith('group:');
+  if (/group/i.test(String(action ?? '')) && !PRIVATE_KEY_GROUP_ACTIONS.has(String(action ?? ''))) return k.startsWith('group:');
   return true;
 }
 
@@ -623,8 +631,18 @@ export function legacyToolEnabled(cfg, tool) {
   return true;
 }
 
+/**
+ * 黑话上下文/AI 黑话工具是否启用：MCP「黑话与梗」组开关 + 全局黑话学习开关。
+ * 组关闭时不再向模型注入黑话表，也不再把 qq_slang_* 算作可用工具；自动学习/提取不受影响。
+ */
+export function slangContextEnabled(cfg) {
+  return cfg?.socialV2?.toolGroups?.slang?.enabled === true && cfg?.slang?.enabled !== false;
+}
+
 export function enabledToolNames(cfg) {
-  return [...ALL_LEGACY_TOOLS.filter((t) => legacyToolEnabled(cfg, t)).map((t) => t.name),
+  return [...ALL_LEGACY_TOOLS
+    .filter((t) => legacyToolEnabled(cfg, t) && (t.group !== 'slang' || slangContextEnabled(cfg)))
+    .map((t) => t.name),
     ...toolsToRegister(cfg).map((t) => t.name)];
 }
 

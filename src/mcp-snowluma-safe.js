@@ -20,6 +20,7 @@ import { SENSITIVE_RE } from './sensitive.js';
 import { serializeModelData } from './qq-model-view.js';
 import { readAgentTokenFromState, isStaleTokenError } from './mcp-agent-auth.js';
 import { registerToolSuites } from './mcp-tool-suites.js';
+import { slangContextEnabled } from './qq-tool-groups.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -272,6 +273,7 @@ const TOOL_CONFIG_FLAGS = {
   qq_get_prompt: 'getPrompt',
   qq_get_unread_messages: 'getUnread',
   qq_get_recent_messages: 'getRecent',
+  qq_get_cross_session_recent: 'crossSessionRecent',
   qq_social_state: 'socialState',
   qq_mark_read: 'markRead',
   qq_set_wake_config: 'setWakeConfig',
@@ -315,6 +317,12 @@ const disabledTools = [];
     const flag = TOOL_CONFIG_FLAGS[name];
     if (flag && cfg.socialV2?.tools?.[flag] === false) {
       disabledTools.push(`${name}(${flag})`);
+      return undefined;
+    }
+    // 黑话表/黑话工具只在「黑话与梗」组开启时对模型可见；组关闭时连 schema 都不注册，
+    // 避免模型看到工具描述后调用、再拿到桥接侧 403。修改组开关后需重启 DSH。
+    if ((name === 'qq_slang_query' || name === 'qq_slang_submit') && !slangContextEnabled(cfg)) {
+      disabledTools.push(`${name}(slang group off)`);
       return undefined;
     }
     return registerTool(name, ...rest);
@@ -542,6 +550,27 @@ server.tool(
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取最近消息失败：${error?.message ?? error}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  'qq_get_cross_session_recent',
+  '管理员私聊专用：一次返回最近 N 小时所有白名单会话的近期消息摘要（每条最多 120 字），用于找话题。仅 private:<ownerQQ> 可调用，其它会话会 403。',
+  {
+    key: z.string().describe('当前会话，必须是管理员私聊 private:<ownerQQ>'),
+    token: z.string().min(1).describe('会话令牌（见唤醒提示中的【会话令牌】）'),
+    hours: z.number().optional().describe('最近多少小时，默认 24，最大 72'),
+    limit: z.number().optional().describe('最多返回多少条，默认 120，最大 300'),
+    perSession: z.number().optional().describe('每个会话最多取多少条，默认 30，最大 100')
+  },
+  async ({ key, token, hours = 24, limit = 120, perSession = 30 }) => {
+    try {
+      const query = `key=${encodeURIComponent(key)}&hours=${hours}&limit=${limit}&perSession=${perSession}`;
+      const data = await agentApi(`/api/socialV2/recent-all?${query}`, { headers: { 'x-agent-token': token } });
+      return { content: [{ type: 'text', text: serializeModelData(data) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `获取跨会话最近消息失败：${error?.message ?? error}` }], isError: true };
     }
   }
 );

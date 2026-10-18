@@ -98,6 +98,29 @@ test('tool management API composes protocols, validates targets and isolates aut
     assert.deepEqual(selectedPrompt.value.toolSuites.groups, ['memory']);
     assert.ok(selectedPrompt.value.enabledTools.includes('qq_set_wake_config'));
     assert.equal(JSON.stringify(h.cfg.socialV2), configBeforeSelection);
+    // 申请类规则不需要目标会话：保存后由管理员私聊会话接收，并带上 approve 用的 flag。
+    const applyRule = { id: 'apply-wake', name: '申请处理', enabled: true, keys: [], events: ['request:friend'],
+      intervalMinutes: 0, cooldownSeconds: 10, snapshotLimit: 4, prompt: '处理申请 {{event}}' };
+    const applied = await request('/api/wake-rules', { rules: [applyRule] });
+    assert.equal(applied.status, 200, JSON.stringify(applied.value));
+    assert.equal(applied.value.adminKey, 'private:123');
+    h.wakeRules.event({ post_type: 'request', request_type: 'friend', user_id: 999, comment: '申请', flag: 'flag-http' });
+    const requestWake = h.buildWakePromptV2('private:123', 'wakeRule');
+    assert.match(requestWake, /flag-http/);
+    assert.match(requestWake, /set_friend_add_request/);
+    assert.equal(h.buildWakePromptV2('group:456', 'wakeRule').includes('flag-http'), false);
+    // 管理员私聊会话可以直接用 flag 处理加群申请（不再要求 group: key）。
+    h.cfg.socialV2.toolGroups.friend = { enabled: true };
+    h.cfg.socialV2.tools.set_group_add_request = true;
+    const adminToken = h.getSocialV2State('private:123').agentToken;
+    const approveResponse = await fetch(`${base}/api/socialV2/tools/call`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-console-token': 'fixture-console-token', 'x-agent-token': adminToken, 'x-agent-call': '1' },
+      body: JSON.stringify({ key: 'private:123', action: 'set_group_add_request', params: { flag: 'flag-http' }, dryRun: true }),
+    });
+    const approve = await approveResponse.json();
+    assert.equal(approveResponse.status, 200, JSON.stringify(approve));
+    assert.equal(approve.dryRun, true);
   } finally {
     if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
     await h.close();
