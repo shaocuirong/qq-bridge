@@ -6,7 +6,7 @@
 >
 > The default branch `main` **is** this version — a plain `git clone` gets it, no branch switching needed.
 
-For the detailed Chinese guide, see **[docs/guides/PROJECT_GUIDE.md](docs/guides/PROJECT_GUIDE.md)**.
+For the detailed Chinese guide, see **[docs/README.md](docs/README.md)** and the focused guides, e.g. **[docs/guides/MCP_TOOLS_AND_WAKE.md](docs/guides/MCP_TOOLS_AND_WAKE.md)**.
 The documentation index (one line per doc, with "still current?" notes) is **[docs/README.md](docs/README.md)**;
 the repository/folder and script-naming conventions are in **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**.
 
@@ -126,7 +126,7 @@ qq-bridge/
   docs/
     README.md           # documentation index (one line per doc + "still current?" notes)
     FOLDER_MAP.md       # folder layout and scripts/ naming conventions
-    guides/             # user/operator facing: PROJECT_GUIDE, DSH_SETUP, VOICE, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING
+    guides/             # user/operator facing: DSH_SETUP, MCP_TOOLS_AND_WAKE, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING
     design/             # design & planning docs
     research/           # investigation notes
     audits/             # review / optimisation reports

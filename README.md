@@ -261,7 +261,7 @@ qq-bridge/
   docs/
     README.md           # 文档索引（每篇一句话 + 是否仍然有效）
     FOLDER_MAP.md       # 目录结构与 scripts/ 命名约定
-    guides/             # 面向使用者/运维：PROJECT_GUIDE / DSH_SETUP / MCP_TOOLS_AND_WAKE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING
+    guides/             # 面向使用者/运维：DSH_SETUP / MCP_TOOLS_AND_WAKE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING
     design/             # 设计与规划：GEN2_SIMULATION_PLAN / SOCIAL_MODE_PLAN / DSH_QQ_TOOLS_PLAN / 真人语感策略
     research/           # 调研：SnowLuma功能调研 / QQ消息免打扰 / 表情包能力 / 本地模型选型
     audits/             # 审查与优化报告（体检、控制台、token）
