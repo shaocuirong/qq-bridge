@@ -55,6 +55,9 @@
 ## 功能一览
 
 - **QQ ↔ DSH 桥接**：白名单内的群/私聊消息 → DSH 会话；回复、提问、工具审批发回 QQ；`reserved2` 二代仿真支持自主阅读、发言、潜水与主动机会。
+- **人格与角色**：`roles/*.md` 人格卡，控制台可查看/编辑/复制/删除；人格层保存即影响下一轮，仿真提示词层改完需重启 DSH。
+- **引用回复 / 合并转发 / 消息读取**：MCP 工具支持 `replyToMessageId` 引用、合并转发、按会话翻历史/成员/文件/表情，动作按工具组开关暴露。
+- **联网搜索**：内置只读 `web_search` / `web_fetch` MCP，带 SSRF 防护；主动机会可以用它找话题。
 - **人物印象（按 QQ 号跨群共享）**：同一个 QQ 在 A 群聊过的东西，到 B 群接得上；候选 → 确认 → 注入，注入块不含证据原文与别群名，手机号等隐私内容会被拦截。控制台「人物印象」页可管理。详见 [docs/guides/PERSON_MEMORY.md](docs/guides/PERSON_MEMORY.md)。
 - **跨会话最近消息摘要（管理员专用）**：`qq_get_cross_session_recent` / `GET /api/socialV2/recent-all` 一次返回白名单会话最近 N 小时的消息摘要（默认 24h / 120 条 / 每会话 30 条，每条 ≤120 字，脱敏，不含原文/媒体/申请 flag）；仅 `private:<ownerQQ>` 可用，普通会话 403。适合「触发空间更新」这类跨会话找话题的任务。
 - **黑话/梗**：从群聊自动提取候选，人工确认后入库；只有 MCP「黑话与梗」组开启时才注入黑话表和【黑话】协议。
@@ -67,7 +70,7 @@
 - **MCP 工具套件**：按工具组/动作开关，私有协议随活跃组注入；控制台可编辑/试调用；配置见 [docs/guides/MCP_TOOLS_AND_WAKE.md](docs/guides/MCP_TOOLS_AND_WAKE.md)。
 - **控制台**：13 个页面，跨页搜索、浅/深主题；令牌与花费看板（峰谷计价、逐轮下钻）、人物印象、事件与定时唤醒、MCP 工具管理、离线 UI 回归。
 - **可观测性**：`state/bridge.log` 的上游事件类型日志、SnowLuma 上游健康卡片、工具调用日志、活动日志。
-- **安全**：白名单 fail-closed、出站敏感审计、仿真会话无本地执行工具（`qq-tool-restrict`）。
+- **安全**：白名单 fail-closed、出站敏感审计、仿真会话无本地执行工具（`qq-tool-restrict`）；权限边界见 [RULES.md](RULES.md)，威胁模型与隐私说明见 [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md) / [docs/guides/PRIVACY.md](docs/guides/PRIVACY.md)。
 
 ```
 QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──► DSH Web API (127.0.0.1:3080/api)

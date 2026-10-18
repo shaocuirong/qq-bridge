@@ -35,6 +35,9 @@ QQ messages ──► SnowLuma (OneBot v11 WS) ──► qq-bridge ──► DSH
 - Whitelist/blacklist access control, fail-closed by default.
 - Sensitive text audit prevents paths/credentials from being sent to QQ.
 - MCP tool suites grouped by topic, with group/action switches, private protocols injected only for active groups, and a console test-call path.
+- Quote replies (`replyToMessageId`), merged-forward sending, and history/member/file/sticker read tools, exposed according to the tool-group switches.
+- A read-only `web_search` / `web_fetch` MCP with SSRF protection; the proactive-opportunity prompt can use it to find a topic.
+- Persona cards (`roles/*.md`) with two editable prompt layers: the persona layer applies immediately, while the simulation layer is synced to DSH and needs a restart.
 - **Person impressions** shared across groups by QQ number: what someone said in group A can be recalled in group B; candidates are confirmed before injection, and evidence text, other group names and private data are filtered. See [docs/guides/PERSON_MEMORY.md](docs/guides/PERSON_MEMORY.md).
 - **Admin-only cross-session recent digest**: `qq_get_cross_session_recent` / `GET /api/socialV2/recent-all` returns recent message summaries from all whitelisted sessions (24h / 120 items / 30 per session by default, each ≤120 chars, redacted, no raw text/media/request flags). Only `private:<ownerQQ>` can call it.
 - **Inbound voice ASR**: QQ voice (SILK) → local decode/ffmpeg → DSH SenseVoice → text in the message; falls back to a `[voice]` placeholder instead of inventing content. Enabled by default, no outbound upload. See [docs/guides/ASR.md](docs/guides/ASR.md).
